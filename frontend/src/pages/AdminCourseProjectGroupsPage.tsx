@@ -17,10 +17,10 @@ function AdminCourseProjectGroupsPage() {
 
   const compareText = (left?: string, right?: string) => (left ?? "").localeCompare(right ?? "");
 
-  const courseProjectGroups = groups.filter((group) => group.courseProjectRegistrations.length > 0);
+  const courseProjectGroups = groups.filter((group) => (group.courseProjectRegistrations?.length ?? 0) > 0);
 
   const groupedBySubject = courseProjectGroups.reduce((acc, group) => {
-    group.courseProjectRegistrations.forEach((registration) => {
+    (group.courseProjectRegistrations ?? []).forEach((registration) => {
       const subjectName = registration.subjectName?.trim() || "Untitled Subject";
       const subjectId = registration.subjectId || subjectName;
       const key = `${subjectId}::${subjectName.toLowerCase()}`;
@@ -92,8 +92,8 @@ function AdminCourseProjectGroupsPage() {
                 {subjectSection.entries.map((entry) => (
                   <article key={`${subjectSection.subjectId}-${entry.group.id}`} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/60 p-4">
                     <h4 className="font-semibold text-[var(--text-strong)]">{entry.group.name}</h4>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {entry.group.owner.name}</p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">Members: {entry.group.members.length}/4</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {entry.group.owner?.name || "Unknown"}</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Members: {entry.group.members?.length ?? 0}/4</p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">Lab faculty: {entry.labFacultyName ?? "Not selected"}</p>
                   </article>
                 ))}

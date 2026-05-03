@@ -34,6 +34,7 @@ const AdminGuideAssignmentPage = () => {
   const [assigningGroupId, setAssigningGroupId] = useState("");
   const [reassignGroup, setReassignGroup] = useState<ProjectGroup | null>(null);
   const [selectedGuideId, setSelectedGuideId] = useState("");
+  const isEdiMajorProjectGroup = (group: ProjectGroup) => group.isEdiRegistered && group.subject === "Engineering Design Innovation";
 
   const loadAll = async () => {
     const [groupResponse, limitResponse] = await Promise.all([
@@ -66,10 +67,10 @@ const AdminGuideAssignmentPage = () => {
   }, []);
 
   const ediGroups = groups
-    .filter((group) => group.isEdiRegistered)
+    .filter(isEdiMajorProjectGroup)
     .sort((left, right) => {
-      const leftDivision = left.owner.division ?? "";
-      const rightDivision = right.owner.division ?? "";
+      const leftDivision = left.owner?.division ?? "";
+      const rightDivision = right.owner?.division ?? "";
       return leftDivision.localeCompare(rightDivision) || left.name.localeCompare(right.name);
     });
 
@@ -225,10 +226,10 @@ const AdminGuideAssignmentPage = () => {
                   <div>
                     <h4 className="font-semibold text-[var(--text-strong)]">{group.name}</h4>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      Owner: {group.owner.name} · {group.members.length}/4 members
+                      Owner: {group.owner?.name || "Unknown"} · {group.members?.length ?? 0}/4 members
                     </p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      Division: {group.owner.division ?? "-"}
+                      Division: {group.owner?.division ?? "-"}
                     </p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
                       {group.ediGuide ? `Guide: ${group.ediGuide.name}` : "Guide Not Assigned"}
@@ -274,7 +275,7 @@ const AdminGuideAssignmentPage = () => {
           <div className="space-y-4">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/60 p-4">
               <p className="text-sm font-semibold text-[var(--text-strong)]">{reassignGroup.name}</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {reassignGroup.owner.name}</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {reassignGroup.owner?.name || "Unknown"}</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">Current guide: {reassignGroup.ediGuide?.name ?? "Not assigned"}</p>
             </div>
 

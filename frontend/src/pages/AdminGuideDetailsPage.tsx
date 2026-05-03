@@ -62,7 +62,7 @@ const AdminGuideDetailsPage = () => {
   const cpGroups = useMemo(
     () =>
       groups.filter((group) =>
-        group.courseProjectRegistrations.some((registration) => registration.labFaculty?.id === guideId)
+        (group.courseProjectRegistrations ?? []).some((registration) => registration.labFaculty?.id === guideId)
       ),
     [groups, guideId]
   );
@@ -169,8 +169,8 @@ const AdminGuideDetailsPage = () => {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-[var(--text-strong)]">{group.name}</p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {group.owner.name}</p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">Members: {group.members.length}</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {group.owner?.name || "Unknown"}</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Members: {group.members?.length ?? 0}</p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
                       Current guide: {group.ediGuide?.name ?? "Not assigned"}
                     </p>
@@ -183,7 +183,7 @@ const AdminGuideDetailsPage = () => {
                           Reassign guide
                         </span>
                         <select
-                          value={selectedGuideByGroup[group.id] ?? group.ediGuide.id}
+                          value={selectedGuideByGroup[group.id] ?? group.ediGuide?.id ?? ""}
                           onChange={(event) =>
                             setSelectedGuideByGroup((current) => ({
                               ...current,
@@ -229,7 +229,7 @@ const AdminGuideDetailsPage = () => {
                 <p className="text-sm font-semibold text-[var(--text-strong)]">{group.name}</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {group.owner.name}</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  Subjects: {group.courseProjectRegistrations
+                  Subjects: {(group.courseProjectRegistrations ?? [])
                     .filter((registration) => registration.labFaculty?.id === guideId)
                     .map((registration) => registration.subjectName)
                     .join(", ") || "None"}

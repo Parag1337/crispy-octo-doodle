@@ -54,7 +54,7 @@ const GuideDashboard = () => {
     void loadGuideDashboard();
   }, []);
 
-  const totalStudents = useMemo(() => groups.reduce((sum, group) => sum + group.members.length, 0), [groups]);
+  const totalStudents = useMemo(() => groups.reduce((sum, group) => sum + (group.members?.length ?? 0), 0), [groups]);
   const openTasks = useMemo(() => tasks.filter((task) => task.status !== "done").length, [tasks]);
   const avgProgress = useMemo(() => {
     if (!updates.length) return 0;

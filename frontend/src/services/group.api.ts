@@ -12,11 +12,11 @@ import type {
 
 interface AR<T> { success: boolean; message: string; data: T; }
 
-export const fetchMyGroup       = () => api.get<AR<ProjectGroup[]>>("/groups/my");
-export const fetchMyInvites     = () => api.get<AR<PendingInvite[]>>("/groups/invites");
-export const fetchGuideGroups   = () => api.get<AR<ProjectGroup[]>>("/groups/guide");
-export const fetchAllGroups     = () => api.get<AR<ProjectGroup[]>>("/groups/all");
-export const fetchAllGuides     = () => api.get<AR<GuideUser[]>>("/groups/guides-list");
+export const fetchMyGroup = () => api.get<AR<ProjectGroup[]>>("/groups/my");
+export const fetchMyInvites = () => api.get<AR<PendingInvite[]>>("/groups/invites");
+export const fetchGuideGroups = () => api.get<AR<ProjectGroup[]>>("/groups/guide");
+export const fetchAllGroups = () => api.get<AR<ProjectGroup[]>>("/groups/all");
+export const fetchAllGuides = () => api.get<AR<GuideUser[]>>("/groups/guides-list");
 export const fetchGuidesBySubject = (subjectId: string) => api.get<AR<GuideUser[]>>(`/groups/guides-by-subject/${subjectId}`);
 
 export const createGroup = (data: { name: string; subject: string; repositoryUrl?: string }) =>
@@ -81,5 +81,5 @@ export const assignCourseProjectLabFaculty = (groupId: string, data: { subjectId
 export const addGroupProject = (groupId: string, data: { title: string; subjectId: string }) =>
 	api.post<AR<ProjectGroup>>(`/groups/${groupId}/projects`, data);
 
-export const updateGroupProject = (groupId: string, projectId: string, data: { repositoryUrl?: string | null }) =>
+export const updateGroupProject = (groupId: string, projectId: string, data: { repositoryUrl?: string | null; title?: string }) =>
 	api.patch<AR<ProjectGroup>>(`/groups/${groupId}/projects/${projectId}`, data);

@@ -5,6 +5,7 @@ import Button from "../components/Button";
 import Modal from "../components/Modal";
 import { fetchMyGroup, registerEdiGroup } from "../services/group.api";
 import type { ProjectGroup } from "../types/group.types";
+import { selectEdiMajorProjectGroup } from "../utils/groupSelection";
 
 function getErrorMessage(err: unknown, fallback = "Something went wrong.") {
   if (axios.isAxiosError(err)) {
@@ -29,7 +30,7 @@ const EdiMajorProjectPage = () => {
       try {
         const response = await fetchMyGroup();
         const groups = response.data.data;
-        setGroup(groups[0] ?? null);
+        setGroup(selectEdiMajorProjectGroup(groups));
       } catch (err) {
         setError(getErrorMessage(err, "Failed to load your group."));
       } finally {

@@ -40,7 +40,7 @@ const GuideMentoringProjectsPage = () => {
       } else {
         const currentGroup = nextGroups.find((group) => group.id === selectedGroupId) ?? null;
         if (currentGroup && !currentGroup.projects.some((project) => project.id === selectedProjectId)) {
-          setSelectedProjectId(currentGroup.projects[0]?.id ?? "");
+          setSelectedProjectId(currentGroup.projects?.[0]?.id ?? "");
         }
       }
     } catch (err) {
@@ -161,7 +161,7 @@ const GuideMentoringProjectsPage = () => {
         <p className="text-sm text-[var(--text-muted)]">Loading mentoring data...</p>
       ) : !selectedGroup ? (
         <p className="text-sm text-[var(--text-muted)]">No mentored projects found yet.</p>
-      ) : selectedGroup.projects.length === 0 ? (
+      ) : (selectedGroup.projects?.length ?? 0) === 0 ? (
         <p className="text-sm text-[var(--text-muted)]">This group has no projects yet.</p>
       ) : (
         <>
@@ -174,7 +174,7 @@ const GuideMentoringProjectsPage = () => {
                 onChange={(event) => setSelectedProjectId(event.target.value)}
                 className="w-full rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/80 px-4 py-3 text-sm text-[var(--text-body)] shadow-sm outline-none transition hover:border-[color:var(--primary-light)]/50 focus:border-[var(--primary)] focus:ring-4 focus:ring-[color:var(--primary)]/12"
               >
-                {selectedGroup.projects.map((project) => (
+                {(selectedGroup.projects ?? []).map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.title} · {project.subjectName}
                   </option>
@@ -188,7 +188,11 @@ const GuideMentoringProjectsPage = () => {
               <Layers3 size={16} />
               <h3 className="text-base font-semibold text-[var(--text-strong)]">Project Summary</h3>
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/70 p-3">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Title</p>
+                <p className="mt-1 text-sm font-semibold text-[var(--text-strong)]">{selectedProject?.title || "Not set"}</p>
+              </div>
               <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/70 p-3">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Group</p>
                 <p className="mt-1 text-sm font-semibold text-[var(--text-strong)]">{selectedGroup.name}</p>

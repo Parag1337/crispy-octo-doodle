@@ -51,7 +51,7 @@ const CourseProjectPage = () => {
 		loadData();
 	}, []);
 
-	const getRegistration = (subjectId: string) => group?.courseProjectRegistrations.find((registration) => registration.subjectId === subjectId) ?? null;
+	const getRegistration = (subjectId: string) => group?.courseProjectRegistrations?.find((registration) => registration.subjectId === subjectId) ?? null;
 
 	const activeSubject = useMemo(
 		() => subjects.find((subject) => subject.id === activeSubjectId) ?? null,

@@ -6,6 +6,7 @@ import { fetchMyGroup } from "../services/group.api";
 import { fetchMyProgressUpdates } from "../services/progress.api";
 import { fetchMyTasks } from "../services/task.api";
 import type { ProjectGroup } from "../types/group.types";
+import { selectEdiMajorProjectGroup } from "../utils/groupSelection";
 import type { ProgressUpdate } from "../types/progress.types";
 import type { Task } from "../types/task.types";
 import { formatDate } from "../utils/helpers";
@@ -30,7 +31,7 @@ const StudentDashboard = () => {
         ]);
 
         setTasks(tasksResponse.data.data);
-        setGroup(groupResponse.data.data[0] ?? null);
+        setGroup(selectEdiMajorProjectGroup(groupResponse.data.data));
         setProgressUpdates(progressResponse.data.data);
       } catch (err) {
         if (axios.isAxiosError(err)) {
@@ -91,7 +92,7 @@ const StudentDashboard = () => {
     { label: "Active Tasks", value: String(activeTasksCount), tone: "text-[var(--primary)]" },
     { label: "Due This Week", value: String(dueThisWeekCount), tone: "text-[var(--warn)]" },
     { label: "Progress Submitted", value: String(progressSubmittedCount), tone: "text-[var(--ok)]" },
-    { label: "Team Members", value: String(group?.members.length ?? 0), tone: "text-[var(--accent)]" }
+    { label: "Team Members", value: String(group?.members?.length ?? 0), tone: "text-[var(--accent)]" }
   ];
 
   if (isLoading) {
@@ -162,7 +163,7 @@ const StudentDashboard = () => {
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="rounded-md border border-[var(--border)] bg-[var(--bg-1)]/80 p-3">
                   <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">Members</p>
-                  <p className="mt-1 text-sm font-medium text-[var(--text-body)]">{group.members.length} / 4</p>
+                  <p className="mt-1 text-sm font-medium text-[var(--text-body)]">{group.members?.length ?? 0} / 4</p>
                 </div>
                 <div className="rounded-md border border-[var(--border)] bg-[var(--bg-1)]/80 p-3">
                   <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">Guide</p>

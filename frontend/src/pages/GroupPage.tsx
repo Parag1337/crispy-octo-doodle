@@ -75,7 +75,7 @@ function NoGroupView({ invites, onAccept, onDecline, onOpenCreate, canCreateGrou
               <div>
                 <p className="text-base font-semibold text-[var(--text-strong)]">{inv.groupName}</p>
                 <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                  Invited by <span className="font-medium">{inv.owner.name}</span>
+                  Invited by <span className="font-medium">{inv.owner?.name || "Unknown"}</span>
                   &nbsp;·&nbsp; {inv.memberCount}/4 members
                   &nbsp;·&nbsp; Subject: {inv.subject}
                 </p>
@@ -128,7 +128,7 @@ function MyGroupView({ group, userId, onUpdate, onLeft, onDeleted }: {
   onLeft: (groupId: string) => void;
   onDeleted: (groupId: string) => void;
 }) {
-  const isOwner = group.owner.id === userId;
+  const isOwner = group.owner?.id === userId;
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteErr, setInviteErr] = useState("");
@@ -228,7 +228,7 @@ function MyGroupView({ group, userId, onUpdate, onLeft, onDeleted }: {
     }
   };
 
-  const spotsLeft = 4 - group.members.length;
+  const spotsLeft = 4 - (group.members?.length ?? 0);
 
   return (
     <>
@@ -246,10 +246,22 @@ function MyGroupView({ group, userId, onUpdate, onLeft, onDeleted }: {
       >
         <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--primary)]">Group</p>
         <h3 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-strong)]">{group.name}</h3>
-        <div className="mt-3 flex items-center justify-between text-xs text-[var(--primary)]">
-          <span>{group.members.length}/4 Members</span>
-          <span>{group.guide ? "Guide Assigned" : "Guide Not Assigned"}</span>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--primary)]">
+          <span>{group.members?.length ?? 0}/4 Members</span>
+          <span>
+            {group.guide || group.cpGuide || (group.courseProjectRegistrations?.some((registration) => Boolean(registration.labFaculty)) ?? false)
+              ? "Faculty Assigned"
+              : "Faculty Not Assigned"}
+          </span>
         </div>
+        {group.courseProjectRegistrations?.length ? (
+          <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--bg-1)]/60 px-4 py-3 text-sm text-[var(--text-body)]">
+            <p className="font-medium text-[var(--text-strong)]">Registered subjects</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              {group.courseProjectRegistrations.map((registration) => registration.subjectName).join(", ")}
+            </p>
+          </div>
+        ) : null}
       </article>
 
       <Modal open={showDetails} title={`Group Details - ${group.name}`} onClose={() => setShowDetails(false)}>
@@ -279,7 +291,7 @@ function MyGroupView({ group, userId, onUpdate, onLeft, onDeleted }: {
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-[var(--text-strong)]">
                 Team Members
-                <span className="ml-2 text-xs font-normal text-[var(--primary)]/80">{group.members.length}/4</span>
+                <span className="ml-2 text-xs font-normal text-[var(--primary)]/80">{group.members?.length ?? 0}/4</span>
               </h3>
               {spotsLeft === 0
                 ? <span className="rounded-full bg-[var(--primary)]/15 px-2 py-0.5 text-xs text-[var(--primary)]">Full</span>
@@ -314,6 +326,25 @@ function MyGroupView({ group, userId, onUpdate, onLeft, onDeleted }: {
             </ul>
           </section>
 
+          {(group.courseProjectRegistrations?.length ?? 0) > 0 && (
+            <section className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/80 p-4">
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-[var(--text-strong)]">Course Project Registrations</h3>
+                <p className="text-xs text-[var(--text-muted)]">Registered subjects and assigned lab faculty.</p>
+              </div>
+              <ul className="space-y-3">
+                {group.courseProjectRegistrations.map((registration) => (
+                  <li key={registration.subjectId} className="rounded-xl border border-[var(--border)] bg-[var(--bg-0)]/70 px-4 py-3">
+                    <p className="text-sm font-semibold text-[var(--text-strong)]">{registration.subjectName}</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      Lab faculty: {registration.labFaculty?.name ?? "Not assigned"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {isOwner && (
             <section className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/80 p-4">
               <h3 className="mb-3 text-sm font-semibold text-[var(--text-strong)]">Invite Teammates</h3>
@@ -335,13 +366,13 @@ function MyGroupView({ group, userId, onUpdate, onLeft, onDeleted }: {
 
               {inviteErr && <p className="mt-2 text-sm text-[var(--danger)]">{inviteErr}</p>}
 
-              {group.pendingInvites.length > 0 && (
+              {(group.pendingInvites?.length ?? 0) > 0 && (
                 <div className="mt-4">
                   <p className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--primary)]/80">
-                    Pending ({group.pendingInvites.length})
+                    Pending ({group.pendingInvites?.length ?? 0})
                   </p>
                   <ul className="space-y-2">
-                    {group.pendingInvites.map((s) => (
+                    {(group.pendingInvites ?? []).map((s) => (
                       <li key={s.id} className="flex items-center justify-between rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-0)]/70 px-3 py-2.5">
                         <div>
                           <p className="text-sm font-medium text-[var(--text-strong)]">{s.name}</p>
@@ -721,14 +752,14 @@ function AdminGroupPage() {
   }, []);
 
   const ediGroups = groups.filter((group) => group.isEdiRegistered);
-  const courseProjectGroups = groups.filter((group) => group.courseProjectRegistrations.length > 0);
+  const courseProjectGroups = groups.filter((group) => (group.courseProjectRegistrations?.length ?? 0) > 0);
   const ediAssignedCount = ediGroups.filter((group) => Boolean(group.ediGuide)).length;
   const ediPendingAssignmentCount = ediGroups.length - ediAssignedCount;
   const totalMembers = groups.reduce((sum, group) => sum + group.members.length, 0);
   const averageGroupSize = groups.length === 0 ? 0 : totalMembers / groups.length;
-  const cpRegistrationCount = groups.reduce((sum, group) => sum + group.courseProjectRegistrations.length, 0);
+  const cpRegistrationCount = groups.reduce((sum, group) => sum + (group.courseProjectRegistrations?.length ?? 0), 0);
   const cpLabPendingCount = groups.reduce(
-    (sum, group) => sum + group.courseProjectRegistrations.filter((registration) => !registration.labFaculty).length,
+    (sum, group) => sum + (group.courseProjectRegistrations ?? []).filter((registration) => !registration.labFaculty).length,
     0
   );
 

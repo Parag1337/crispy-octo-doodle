@@ -134,7 +134,7 @@ const StudentProjectDetailsPage = () => {
       current
         ? {
             ...current,
-            projects: current.projects.map((entry) => (entry.id === project.id ? { ...entry, repositoryUrl: nextUrl } : entry))
+            projects: (current.projects ?? []).map((entry) => (entry.id === project.id ? { ...entry, repositoryUrl: nextUrl } : entry))
           }
         : current
     );

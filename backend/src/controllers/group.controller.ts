@@ -65,15 +65,20 @@ const toTeachingSubjectIds = (subjects: unknown[] = []) =>
 		})
 		.filter(Boolean);
 
-const fu = (u: PopUser) => ({
-	id: String(u._id),
-	name: u.name,
-	email: u.email,
-	branch: u.branch,
-	division: u.division,
-	rollNo: u.rollNo,
-	teachingSubjectIds: toTeachingSubjectIds(u.teachingSubjects)
-});
+const fu = (u: PopUser | null | undefined) => {
+	if (!u || typeof u !== "object") {
+		return { id: "", name: "Unknown", email: "", branch: undefined, division: undefined, rollNo: undefined, teachingSubjectIds: [] };
+	}
+	return {
+		id: String(u._id ?? ""),
+		name: u.name ?? "Unknown",
+		email: u.email ?? "",
+		branch: u.branch,
+		division: u.division,
+		rollNo: u.rollNo,
+		teachingSubjectIds: toTeachingSubjectIds(u.teachingSubjects)
+	};
+};
 
 const EDI_GLOBAL_LIMIT_KEY = "edi_global_assignment_limit";
 const EDI_GLOBAL_LIMIT_DEFAULT = 8;
@@ -88,57 +93,80 @@ const normalizeRepositoryUrl = (value: string) => value.trim().replace(/\/+$/, "
 const isValidGithubRepositoryUrl = (value: string) =>
 	/^https?:\/\/(www\.)?github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/i.test(value);
 
-const formatGroup = (g: Record<string, unknown>) => ({
-	id: String(g._id),
-	name: g.name as string,
-	subject: (g.subject as string) || "General",
-	repositoryUrl: (g.repositoryUrl as string | null | undefined) ?? null,
-	isEdiRegistered: Boolean(g.isEdiRegistered),
-	owner: fu(g.owner as PopUser),
-	guide: g.ediGuide ? fu(g.ediGuide as PopUser) : null,
-	ediGuide: g.ediGuide ? fu(g.ediGuide as PopUser) : null,
-	cpGuide: g.cpGuide ? fu(g.cpGuide as PopUser) : null,
-	projects: ((g.projects as unknown[]) ?? []).map((entry) => {
-		const project = entry as {
-			_id?: unknown;
-			title?: unknown;
-			subjectId?: unknown;
-			subjectName?: unknown;
-			guideName?: unknown;
-			repositoryUrl?: unknown;
-			createdBy?: unknown;
-			createdAt?: unknown;
-		};
+const toMember = (user: PopUser | null | undefined) => {
+	if (!user || typeof user !== "object") return null;
+	return { ...fu(user), role: user.role ?? "student" };
+};
 
-		return {
-			id: String(project._id ?? ""),
-			title: String(project.title ?? ""),
-			subjectId: String((project.subjectId as { _id?: unknown } | undefined)?._id ?? project.subjectId ?? ""),
-			subjectName: String(project.subjectName ?? ""),
-			guideName: String(project.guideName ?? "Not assigned"),
-			repositoryUrl: (project.repositoryUrl as string | null | undefined) ?? null,
-			createdBy: String((project.createdBy as { _id?: unknown } | undefined)?._id ?? project.createdBy ?? ""),
-			createdAt: project.createdAt ? new Date(project.createdAt as string | number | Date).toISOString() : null
-		};
-	}),
-	courseProjectRegistrations: ((g.courseProjectRegistrations as unknown[]) ?? []).map((entry) => {
-		const registration = entry as {
-			subjectId?: unknown;
-			subjectName?: unknown;
-			labFaculty?: PopUser | null;
-			registeredAt?: unknown;
-		};
+const formatGroup = (g: Record<string, unknown>) => {
+	const owner = g.owner as PopUser | null;
+	const ownerMember = toMember(owner);
+	const members = (g.members as PopUser[])
+		.filter(Boolean)
+		.map((m) => m ? toMember(m) : null)
+		.filter(Boolean);
 
-		return {
-			subjectId: String((registration.subjectId as { _id?: unknown } | undefined)?._id ?? registration.subjectId ?? ""),
-			subjectName: String(registration.subjectName ?? ""),
-			labFaculty: registration.labFaculty ? fu(registration.labFaculty) : null,
-			registeredAt: registration.registeredAt ? new Date(registration.registeredAt as string | number | Date).toISOString() : null
-		};
-	}),
-	members: (g.members as PopUser[]).map((m) => ({ ...fu(m), role: m.role ?? "student" })),
-	pendingInvites: (g.pendingInvites as PopUser[]).map(fu)
-});
+	const finalMembers = ownerMember && !members.some((member) => member.id === ownerMember.id)
+		? [ownerMember, ...members]
+		: members;
+
+	return {
+		id: String(g._id),
+		name: g.name as string,
+		subject: (g.subject as string) || "General",
+		repositoryUrl: (g.repositoryUrl as string | null | undefined) ?? null,
+		isEdiRegistered: Boolean(g.isEdiRegistered),
+		owner: fu(owner),
+		guide: g.ediGuide ? fu(g.ediGuide as PopUser | null) : null,
+		ediGuide: g.ediGuide ? fu(g.ediGuide as PopUser | null) : null,
+		cpGuide: g.cpGuide ? fu(g.cpGuide as PopUser | null) : null,
+		projects: ((g.projects as unknown[]) ?? []).map((entry) => {
+			const project = entry as {
+				_id?: unknown;
+				title?: unknown;
+				subjectId?: unknown;
+				subjectName?: unknown;
+				guideName?: unknown;
+				repositoryUrl?: unknown;
+				createdBy?: unknown;
+				createdAt?: unknown;
+			};
+
+			const subjectId = project.subjectId as { _id?: unknown } | undefined | null;
+			const createdBy = project.createdBy as { _id?: unknown } | undefined | null;
+
+			return {
+				id: String(project._id ?? ""),
+				title: String(project.title ?? ""),
+				subjectId: String(subjectId?._id ?? project.subjectId ?? ""),
+				subjectName: String(project.subjectName ?? ""),
+				guideName: String(project.guideName ?? "Not assigned"),
+				repositoryUrl: (project.repositoryUrl as string | null | undefined) ?? null,
+				createdBy: String(createdBy?._id ?? project.createdBy ?? ""),
+				createdAt: project.createdAt ? new Date(project.createdAt as string | number | Date).toISOString() : null
+			};
+		}),
+		courseProjectRegistrations: ((g.courseProjectRegistrations as unknown[]) ?? []).map((entry) => {
+			const registration = entry as {
+				subjectId?: unknown;
+				subjectName?: unknown;
+				labFaculty?: PopUser | null;
+				registeredAt?: unknown;
+			};
+
+			const subjectId = registration.subjectId as { _id?: unknown } | undefined | null;
+
+			return {
+				subjectId: String(subjectId?._id ?? registration.subjectId ?? ""),
+				subjectName: String(registration.subjectName ?? ""),
+				labFaculty: registration.labFaculty ? fu(registration.labFaculty) : null,
+				registeredAt: registration.registeredAt ? new Date(registration.registeredAt as string | number | Date).toISOString() : null
+			};
+		}),
+		members: finalMembers,
+		pendingInvites: (g.pendingInvites as PopUser[]).filter(Boolean).map((p) => p ? fu(p) : null).filter(Boolean)
+	};
+};
 
 const userBelongsToGroup = (group: { owner: unknown; members: unknown[] }, userId: string) =>
 	String(group.owner) === userId || group.members.some((memberId) => String(memberId) === userId);
@@ -202,11 +230,13 @@ export const createGroup = asyncHandler(async (req: AuthenticatedRequest, res: R
 	res.status(201).json(new ApiResponse(true, "Group created", formatGroup(populated.toObject() as unknown as Record<string, unknown>)));
 });
 
-// ─── Student: fetch all groups where the user is a member ────────────────────
+// ─── Student: fetch all groups where the user is the owner or a member ───
 export const getMyGroup = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
 	const userId = req.user!.userId;
 
-	const groups = await ProjectGroupModel.find({ members: userId }).populate(POPULATE).sort({ createdAt: -1 }).lean();
+	const groups = await ProjectGroupModel.find({
+		$or: [{ owner: userId }, { members: userId }]
+	}).populate(POPULATE).sort({ createdAt: -1 }).lean();
 
 	res.status(200).json(
 		new ApiResponse(true, "Groups fetched", groups.map((g) => formatGroup(g as unknown as Record<string, unknown>)))
@@ -222,13 +252,16 @@ export const getMyInvites = asyncHandler(async (req: AuthenticatedRequest, res: 
 		.populate("members", "name email")
 		.lean();
 
-	const result = groups.map((g) => ({
-		groupId: String(g._id),
-		groupName: g.name,
-		subject: g.subject || "General",
-		owner: fu((g.owner as unknown) as PopUser),
-		memberCount: (g.members as unknown[]).length
-	}));
+	const result = groups.map((g) => {
+		const owner = g.owner as PopUser | null;
+		return {
+			groupId: String(g._id),
+			groupName: g.name,
+			subject: g.subject || "General",
+			owner: owner ? fu(owner) : { id: "", name: "Unknown", email: "" },
+			memberCount: (g.members as unknown[]).length
+		};
+	});
 
 	res.status(200).json(new ApiResponse(true, "Invites fetched", result));
 });
@@ -435,8 +468,8 @@ export const addGroupProject = asyncHandler(async (req: AuthenticatedRequest, re
 		return;
 	}
 
-	if (!subjectId?.trim() || !Types.ObjectId.isValid(subjectId)) {
-		res.status(400).json(new ApiResponse(false, "Valid subject is required", null));
+	if (!subjectId?.trim()) {
+		res.status(400).json(new ApiResponse(false, "Subject is required", null));
 		return;
 	}
 
@@ -446,19 +479,54 @@ export const addGroupProject = asyncHandler(async (req: AuthenticatedRequest, re
 		return;
 	}
 
-	const subject = await SubjectModel.findById(subjectId).select("name").lean();
-	if (!subject) {
-		res.status(404).json(new ApiResponse(false, "Subject not found", null));
+	let subjectName: string;
+	let guideName: string;
+
+	const existingProjects = group.projects ?? [];
+	const hasDuplicate = existingProjects.some((project) => {
+		if (subjectId === "edi") {
+			return project.subjectName === "Engineering Design Innovation";
+		}
+		return String(project.subjectId) === subjectId;
+	});
+
+	if (hasDuplicate) {
+		res.status(400).json(new ApiResponse(false, "A project for this subject already exists. Only one project is allowed per subject.", null));
 		return;
 	}
 
-	group.projects = group.projects ?? [];
+	if (subjectId === "edi") {
+		// Special case for EDI projects
+		if (!group.isEdiRegistered) {
+			res.status(400).json(new ApiResponse(false, "EDI projects can only be added to EDI registered groups", null));
+			return;
+		}
+		subjectName = "Engineering Design Innovation";
+		guideName = group.ediGuide ? (await UserModel.findById(group.ediGuide).select("name").lean())?.name ?? "Not assigned" : "Not assigned";
+	} else {
+		// Regular course project
+		if (!Types.ObjectId.isValid(subjectId)) {
+			res.status(400).json(new ApiResponse(false, "Invalid subject ID", null));
+			return;
+		}
+
+		const subject = await SubjectModel.findById(subjectId).select("name").lean();
+		if (!subject) {
+			res.status(404).json(new ApiResponse(false, "Subject not found", null));
+			return;
+		}
+
+		subjectName = subject.name;
+		guideName = await resolveProjectGuideName(group.toObject() as unknown as Record<string, unknown>, subjectId);
+	}
+
+	group.projects = existingProjects;
 	group.projects.push({
 		_id: new Types.ObjectId(),
 		title: title.trim(),
-		subjectId: new Types.ObjectId(subjectId),
-		subjectName: subject.name,
-		guideName: await resolveProjectGuideName(group.toObject() as unknown as Record<string, unknown>, subjectId),
+		subjectId: subjectId === "edi" ? new Types.ObjectId() : new Types.ObjectId(subjectId), // For EDI, use a dummy ObjectId since it's not a real subject
+		subjectName,
+		guideName,
 		repositoryUrl: null,
 		createdBy: new Types.ObjectId(userId),
 		createdAt: new Date()
@@ -473,7 +541,7 @@ export const addGroupProject = asyncHandler(async (req: AuthenticatedRequest, re
 export const updateGroupProject = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
 	const userId = req.user!.userId;
 	const { id, projectId } = req.params as { id: string; projectId: string };
-	const { repositoryUrl } = req.body as { repositoryUrl?: string | null };
+	const { repositoryUrl, title } = req.body as { repositoryUrl?: string | null; title?: string };
 
 	const group = await ProjectGroupModel.findById(id);
 	if (!group || !userBelongsToGroup(group.toObject() as unknown as { owner: unknown; members: unknown[] }, userId)) {
@@ -485,6 +553,14 @@ export const updateGroupProject = asyncHandler(async (req: AuthenticatedRequest,
 	if (!project) {
 		res.status(404).json(new ApiResponse(false, "Project not found", null));
 		return;
+	}
+
+	if (title !== undefined) {
+		if (!title.trim()) {
+			res.status(400).json(new ApiResponse(false, "Project title cannot be empty", null));
+			return;
+		}
+		project.title = title.trim();
 	}
 
 	if (repositoryUrl !== undefined) {
@@ -580,22 +656,41 @@ export const assignCourseProjectLabFaculty = asyncHandler(async (req: Authentica
 		return;
 	}
 
+	let assignedFacultyName: string | null = null;
+
 	if (facultyId) {
 		if (!Types.ObjectId.isValid(facultyId)) {
 			res.status(400).json(new ApiResponse(false, "Invalid faculty ID", null));
 			return;
 		}
 
-		const faculty = await UserModel.findOne({ _id: facultyId, role: "guide" });
+		const faculty = await UserModel.findOne({ _id: facultyId, role: "guide" }).select("name").lean();
 		if (!faculty) {
 			res.status(404).json(new ApiResponse(false, "Lab faculty not found", null));
 			return;
 		}
 
 		registration.labFaculty = new Types.ObjectId(facultyId);
+		assignedFacultyName = faculty.name;
 	} else {
 		registration.labFaculty = null;
+		assignedFacultyName = null;
 	}
+
+	group.projects = group.projects?.map((project) => {
+		if (String(project.subjectId) !== subjectId) return project;
+		return {
+			...project,
+			title: project.title,
+			subjectId: project.subjectId,
+			subjectName: project.subjectName,
+			guideName: assignedFacultyName ?? "Not assigned",
+			repositoryUrl: project.repositoryUrl ?? null,
+			createdBy: project.createdBy,
+			createdAt: project.createdAt,
+			_id: project._id
+		};
+	});
 
 	await group.save();
 	const populated = await group.populate(POPULATE);
@@ -644,7 +739,13 @@ export const deleteGroup = asyncHandler(async (req: AuthenticatedRequest, res: R
 export const getGuideGroups = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
 	const guideId = req.user!.userId;
 
-	const groups = await ProjectGroupModel.find({ ediGuide: guideId }).populate(POPULATE).sort({ createdAt: -1 }).lean();
+	const groups = await ProjectGroupModel.find({
+		$or: [
+			{ ediGuide: guideId },
+			{ cpGuide: guideId },
+			{ "courseProjectRegistrations.labFaculty": guideId }
+		]
+	}).populate(POPULATE).sort({ createdAt: -1 }).lean();
 
 	res.status(200).json(new ApiResponse(true, "Guide groups fetched", groups.map((g) => formatGroup(g as unknown as Record<string, unknown>))));
 });
@@ -653,6 +754,7 @@ export const getGuideGroups = asyncHandler(async (req: AuthenticatedRequest, res
 export const assignGuide = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
 	const { id } = req.params as { id: string };
 	const { guideId } = req.body as { guideId?: string | null };
+	const EDI_MAJOR_PROJECT_SUBJECT = "Engineering Design Innovation";
 
 	const group = await ProjectGroupModel.findById(id);
 	if (!group) {
@@ -660,8 +762,8 @@ export const assignGuide = asyncHandler(async (req: AuthenticatedRequest, res: R
 		return;
 	}
 
-	if (!group.isEdiRegistered) {
-		res.status(400).json(new ApiResponse(false, "Group must be registered in EDI before guide assignment", null));
+	if (!group.isEdiRegistered || group.subject !== EDI_MAJOR_PROJECT_SUBJECT) {
+		res.status(400).json(new ApiResponse(false, "Only EDI major project groups can receive EDI guides", null));
 		return;
 	}
 
@@ -692,6 +794,7 @@ export const assignGuide = asyncHandler(async (req: AuthenticatedRequest, res: R
 // ─── Admin: randomly assign EDI guide with capacity limit ───────────────────
 export const assignGuideRandomly = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
 	const { id } = req.params as { id: string };
+	const EDI_MAJOR_PROJECT_SUBJECT = "Engineering Design Innovation";
 
 	const group = await ProjectGroupModel.findById(id);
 	if (!group) {
@@ -699,8 +802,8 @@ export const assignGuideRandomly = asyncHandler(async (req: AuthenticatedRequest
 		return;
 	}
 
-	if (!group.isEdiRegistered) {
-		res.status(400).json(new ApiResponse(false, "Group must be registered in EDI before guide assignment", null));
+	if (!group.isEdiRegistered || group.subject !== EDI_MAJOR_PROJECT_SUBJECT) {
+		res.status(400).json(new ApiResponse(false, "Only EDI major project groups can receive EDI guides", null));
 		return;
 	}
 

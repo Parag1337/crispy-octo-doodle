@@ -82,7 +82,7 @@ const AdminDashboard = () => {
 			return true;
 		}
 
-		return group.courseProjectRegistrations.some((registration) => {
+    	return (group.courseProjectRegistrations ?? []).some((registration) => {
 			const registrationSubjectId = normalize(registration.subjectId);
 			const registrationSubjectName = normalize(registration.subjectName);
 			return registrationSubjectId === subjectId || registrationSubjectName === subjectName;

@@ -20,8 +20,8 @@ function AdminEdiGroupsPage() {
   const ediGroups = groups.filter((group) => group.isEdiRegistered);
 
   const groupedByDivision = ediGroups.reduce((acc, group) => {
-    const division = group.owner.division?.trim() || "Unassigned Division";
-    const branch = group.owner.branch?.trim() || "Unknown Branch";
+    const division = group.owner?.division?.trim() || "Unassigned Division";
+    const branch = group.owner?.branch?.trim() || "Unknown Branch";
     const key = `${branch}::${division}`;
 
     if (!acc[key]) {
@@ -89,8 +89,8 @@ function AdminEdiGroupsPage() {
                 {divisionSection.entries.map((group) => (
                   <article key={`${divisionSection.key}-${group.id}`} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/60 p-4">
                     <h4 className="font-semibold text-[var(--text-strong)]">{group.name}</h4>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {group.owner.name}</p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">Members: {group.members.length}/4</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Owner: {group.owner?.name || "Unknown"}</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Members: {group.members?.length ?? 0}/4</p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">Guide: {group.ediGuide?.name ?? "Not assigned"}</p>
                   </article>
                 ))}
