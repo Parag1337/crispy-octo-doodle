@@ -8,6 +8,7 @@ import Modal from "../components/Modal";
 import { assignCourseProjectLabFaculty, fetchGuidesBySubject, fetchMyGroup, registerCourseProjectSubject } from "../services/group.api";
 import { fetchAllSubjects, type Subject } from "../services/subject.api";
 import type { GuideUser, ProjectGroup } from "../types/group.types";
+import { selectEdiMajorProjectGroup } from "../utils/groupSelection";
 
 function getErrorMessage(err: unknown, fallback = "Something went wrong.") {
 	if (axios.isAxiosError(err)) {
@@ -41,7 +42,15 @@ const CourseProjectPage = () => {
 					(subject) => !/\bedi\b/i.test(subject.name)
 				);
 				setSubjects(nonEdiSubjects);
-				setGroup(groupResponse.data.data[0] ?? null);
+				
+				const groups = groupResponse.data.data;
+				// First, try to find a group that has course project registrations
+				let userGroup: typeof groups[0] | null | undefined = groups.find((g) => (g.courseProjectRegistrations?.length ?? 0) > 0);
+				// If no group has registrations, fall back to EDI major project group
+				if (!userGroup) {
+					userGroup = selectEdiMajorProjectGroup(groups);
+				}
+				setGroup(userGroup ?? null);
 			} catch (err) {
 				console.error("Failed to fetch subjects", err);
 			} finally {
