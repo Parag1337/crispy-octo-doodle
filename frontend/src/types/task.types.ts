@@ -10,6 +10,12 @@ export interface TaskGroupRef {
   name: string;
 }
 
+export interface TaskProjectRef {
+  id: string;
+  title: string;
+  subjectName: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -22,5 +28,6 @@ export interface Task {
   completedAt?: string | null;
   assignee?: TaskParty;
   group?: TaskGroupRef;
+  project?: TaskProjectRef;
   createdBy?: TaskParty;
 }

@@ -9,6 +9,11 @@ export interface ITask {
 	description: string;
 	assignee: Types.ObjectId;
 	group?: Types.ObjectId;
+	project?: {
+		id: Types.ObjectId;
+		title: string;
+		subjectName: string;
+	};
 	createdBy?: Types.ObjectId;
 	dueDate: Date;
 	status: TaskStatus;
@@ -26,6 +31,11 @@ const taskSchema = new Schema<ITask>(
 		description: { type: String, default: "", trim: true },
 		assignee: { type: Schema.Types.ObjectId, ref: "User", required: true },
 		group: { type: Schema.Types.ObjectId, ref: "ProjectGroup" },
+		project: {
+			id: { type: Schema.Types.ObjectId, required: true },
+			title: { type: String, required: true, trim: true },
+			subjectName: { type: String, required: true, trim: true }
+		},
 		createdBy: { type: Schema.Types.ObjectId, ref: "User" },
 		dueDate: { type: Date, required: true },
 		status: {

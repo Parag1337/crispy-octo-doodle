@@ -34,7 +34,7 @@ const AdminGuideAssignmentPage = () => {
   const [assigningGroupId, setAssigningGroupId] = useState("");
   const [reassignGroup, setReassignGroup] = useState<ProjectGroup | null>(null);
   const [selectedGuideId, setSelectedGuideId] = useState("");
-  const isEdiMajorProjectGroup = (group: ProjectGroup) => group.isEdiRegistered && group.subject === "Engineering Design Innovation";
+  const isEdiMajorProjectGroup = (group: ProjectGroup) => group.isEdiRegistered ?? false;
 
   const loadAll = async () => {
     const [groupResponse, limitResponse] = await Promise.all([

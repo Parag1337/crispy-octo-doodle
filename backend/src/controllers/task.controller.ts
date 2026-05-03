@@ -22,6 +22,7 @@ const formatTask = (
 		completedAt?: Date | null;
 		assignee?: unknown;
 		group?: unknown;
+		project?: { id: unknown; title: string; subjectName: string };
 		createdBy?: unknown;
 	},
 	includeRelations = false
@@ -35,7 +36,14 @@ const formatTask = (
 		priority: task.priority,
 		completionNote: task.completionNote ?? "",
 		completionCommitUrls: task.completionCommitUrls ?? [],
-		completedAt: task.completedAt ?? null
+		completedAt: task.completedAt ?? null,
+		project: task.project
+			? {
+				id: String(task.project.id),
+				title: task.project.title,
+				subjectName: task.project.subjectName
+			}
+			: undefined
 	};
 
 	if (!includeRelations) return formatted;
@@ -86,8 +94,9 @@ export const createGuideTask = asyncHandler(async (req: AuthenticatedRequest, re
 		return;
 	}
 
-	const { groupId, assigneeId, title, description, dueDate, priority } = req.body as {
+	const { groupId, projectId, assigneeId, title, description, dueDate, priority } = req.body as {
 		groupId?: string;
+		projectId?: string;
 		assigneeId?: string;
 		title?: string;
 		description?: string;
@@ -121,7 +130,7 @@ export const createGuideTask = asyncHandler(async (req: AuthenticatedRequest, re
 		return;
 	}
 
-	const group = await ProjectGroupModel.findOne({ _id: groupId, ediGuide: guideId }).select("name members").lean();
+	const group = await ProjectGroupModel.findOne({ _id: groupId, ediGuide: guideId }).select("name members projects").lean();
 	if (!group) {
 		res.status(404).json(new ApiResponse(false, "Group not found for this guide", null));
 		return;
@@ -133,11 +142,32 @@ export const createGuideTask = asyncHandler(async (req: AuthenticatedRequest, re
 		return;
 	}
 
+	let projectData: { id: Types.ObjectId; title: string; subjectName: string } | undefined;
+	if (projectId) {
+		if (!Types.ObjectId.isValid(projectId)) {
+			res.status(400).json(new ApiResponse(false, "Valid projectId is required when selecting a project", null));
+			return;
+		}
+
+		const projectEntry = group.projects.find((project) => String(project._id) === projectId);
+		if (!projectEntry) {
+			res.status(400).json(new ApiResponse(false, "Selected project does not belong to this group", null));
+			return;
+		}
+
+		projectData = {
+			id: projectEntry._id,
+			title: projectEntry.title,
+			subjectName: projectEntry.subjectName
+		};
+	}
+
 	const task = await TaskModel.create({
 		title: title.trim(),
 		description: description?.trim() ?? "",
 		assignee: new Types.ObjectId(assigneeId),
 		group: new Types.ObjectId(groupId),
+		project: projectData,
 		createdBy: new Types.ObjectId(guideId),
 		dueDate: parsedDueDate,
 		status: "todo",

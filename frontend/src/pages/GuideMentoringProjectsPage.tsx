@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { ExternalLink, GitCommitHorizontal, Layers3, ListChecks, Users2 } from "lucide-react";
+import { ExternalLink, FileText, GitCommitHorizontal, Layers3, ListChecks, Users2 } from "lucide-react";
 import axios from "axios";
 import Button from "../components/Button";
+import Modal from "../components/Modal";
 import { useAuth } from "../hooks/useAuth";
 import { fetchGuideGroups, fetchGuideTasks, type GuideTask } from "../services/guide.api";
-import type { GroupProject, ProjectGroup } from "../types/group.types";
+import type { GroupProject, ProjectGroup, ProjectDocument } from "../types/group.types";
 import { fetchAllCommits, getContributionSummary, mapTasksToCommits, parseRepoFromUrl } from "../utils/commitMapping";
 import { formatDate } from "../utils/helpers";
+import { DocumentPreview, getDocumentUrl } from "../utils/documentPreview";
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+};
 
 const GuideMentoringProjectsPage = () => {
   const { user } = useAuth();
@@ -24,6 +33,8 @@ const GuideMentoringProjectsPage = () => {
   const [commitsError, setCommitsError] = useState("");
   const [isCommitsLoading, setIsCommitsLoading] = useState(false);
   const [commits, setCommits] = useState<Awaited<ReturnType<typeof fetchAllCommits>>>([]);
+  const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
+  const [isDocumentPreviewOpen, setIsDocumentPreviewOpen] = useState(false);
 
   const loadGuideData = async (preserveSelection = true) => {
     try {
@@ -65,13 +76,31 @@ const GuideMentoringProjectsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "github-commits-token") {
+        setGithubToken(event.newValue ?? "");
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   const selectedGroup = useMemo(() => groups.find((group) => group.id === selectedGroupId) ?? null, [groups, selectedGroupId]);
   const selectedProject = useMemo<GroupProject | null>(() => selectedGroup?.projects.find((project) => project.id === selectedProjectId) ?? null, [selectedGroup, selectedProjectId]);
 
+  useEffect(() => {
+    setCommits([]);
+    setCommitsError("");
+  }, [selectedProject?.repositoryUrl]);
+
   const groupTasks = useMemo(() => {
     if (!selectedGroup) return [];
-    return tasks.filter((task) => task.group?.name === selectedGroup.name);
-  }, [selectedGroup, tasks]);
+    return tasks.filter(
+      (task) => task.group?.name === selectedGroup.name && (!selectedProjectId || task.project?.id === selectedProjectId)
+    );
+  }, [selectedGroup, selectedProjectId, tasks]);
 
   const taskCommitLinks = useMemo(() => mapTasksToCommits(groupTasks, commits), [groupTasks, commits]);
   const contributionSummary = useMemo(() => getContributionSummary(commits), [commits]);
@@ -108,6 +137,16 @@ const GuideMentoringProjectsPage = () => {
     }
   }, [selectedProject, githubToken]);
 
+  const openDocumentPreview = (doc: ProjectDocument) => {
+    setSelectedDocument(doc);
+    setIsDocumentPreviewOpen(true);
+  };
+
+  const closeDocumentPreview = () => {
+    setSelectedDocument(null);
+    setIsDocumentPreviewOpen(false);
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await loadGuideData(true);
@@ -126,10 +165,16 @@ const GuideMentoringProjectsPage = () => {
         <p className="mt-3 max-w-3xl text-sm text-[var(--text-muted)] md:text-base">
           Review commits, check individual contribution by account, and map commits to assigned tasks.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button type="button" variant="secondary" onClick={() => void handleRefresh()} disabled={isRefreshing}>
             {isRefreshing ? "Syncing..." : "Refresh Project Data"}
           </Button>
+          <Link
+            to="/tasks"
+            className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/80 px-4 py-3 text-sm font-semibold text-[var(--text-strong)] transition hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
+          >
+            Open task assignment
+          </Link>
         </div>
       </section>
 
@@ -214,6 +259,59 @@ const GuideMentoringProjectsPage = () => {
               <p className="mt-4 text-sm text-[var(--text-muted)]">Repository URL not added for this project.</p>
             )}
           </section>
+
+          <section className="rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card">
+            <div className="mb-4 flex items-center gap-2 text-[var(--primary)]">
+              <FileText size={16} />
+              <h3 className="text-base font-semibold text-[var(--text-strong)]">Project Documents</h3>
+            </div>
+            {selectedProject?.documents?.length ? (
+              <div className="space-y-3">
+                {selectedProject.documents.map((doc) => (
+                  <div key={doc.id} className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-1)]/70 p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <a
+                        href={getDocumentUrl(doc)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block truncate text-sm font-semibold text-[var(--text-strong)] hover:text-[var(--primary)] transition-colors"
+                      >
+                        {doc.originalName}
+                      </a>
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        {formatFileSize(doc.size)} · {doc.mimeType.split("/").pop()?.toUpperCase()} · Uploaded by {doc.uploadedBy}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[var(--border)] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                      {doc.uploadedAt ? formatDate(doc.uploadedAt) : "Unknown date"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openDocumentPreview(doc)}
+                        className="rounded-full border border-[var(--border)] bg-[var(--bg-1)] px-3 py-1 text-xs font-semibold text-[var(--text-strong)] transition hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
+                      >
+                        Preview
+                      </button>
+                      <a
+                        href={getDocumentUrl(doc)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full border border-[var(--border)] bg-[var(--bg-1)] px-3 py-1 text-xs font-semibold text-[var(--text-strong)] transition hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
+                      >
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--text-muted)]">No documents uploaded for this project yet.</p>
+            )}
+          </section>
+          <Modal open={isDocumentPreviewOpen && Boolean(selectedDocument)} title={selectedDocument?.originalName ?? "Document Viewer"} onClose={closeDocumentPreview} size="large">
+            {selectedDocument ? <DocumentPreview document={selectedDocument} /> : null}
+          </Modal>
 
           <section className="rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card">
             <div className="mb-4 flex items-center gap-2 text-[var(--primary)]">

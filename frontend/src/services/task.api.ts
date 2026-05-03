@@ -12,6 +12,7 @@ export const fetchGuideTasks = () => api.get<ApiResponse<Task[]>>("/tasks/guide"
 
 export const createGuideTask = (payload: {
   groupId: string;
+  projectId?: string;
   assigneeId: string;
   title: string;
   description?: string;

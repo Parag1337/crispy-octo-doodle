@@ -87,12 +87,26 @@ const GuideDashboard = () => {
           Monitor team health, review student progress, and track urgent delivery risks across all your groups.
             </p>
           </div>
-          <Link
-            to="/guide/subjects"
-            className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/80 px-4 py-3 text-sm font-semibold text-[var(--text-strong)] transition hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
-          >
-            Update subjects <ArrowRight size={16} />
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/guide/projects"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/80 px-4 py-3 text-sm font-semibold text-[var(--text-strong)] transition hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
+            >
+              Mentoring projects <ArrowRight size={16} />
+            </Link>
+            <Link
+              to="/tasks"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/80 px-4 py-3 text-sm font-semibold text-[var(--text-strong)] transition hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
+            >
+              Assign tasks <ArrowRight size={16} />
+            </Link>
+            <Link
+              to="/guide/subjects"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/80 px-4 py-3 text-sm font-semibold text-[var(--text-strong)] transition hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
+            >
+              Update subjects <ArrowRight size={16} />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -142,16 +156,6 @@ const GuideDashboard = () => {
                 <div>
                   <p className="text-base font-bold text-[var(--primary)]">Group Name: <span className="text-[var(--text-strong)]">{selectedGroup.name}</span></p>
                   <p className="text-sm text-[var(--ok)]">Guide: <span className="text-[var(--text-strong)]">{selectedGroup.ediGuide?.name ?? "Not assigned"}</span></p>
-                  <p className="text-sm text-[var(--text-body)]">
-                    GitHub Repo:{" "}
-                    {selectedGroup.repositoryUrl ? (
-                      <a href={selectedGroup.repositoryUrl} target="_blank" rel="noreferrer" className="text-[var(--primary)] hover:underline">
-                        {selectedGroup.repositoryUrl}
-                      </a>
-                    ) : (
-                      <span className="text-[var(--text-muted)]">Not added</span>
-                    )}
-                  </p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-[var(--primary)] mb-2">Members</p>

@@ -676,6 +676,7 @@ function StudentGroupPage() {
 
 function GuideGroupPage() {
   const [groups, setGroups] = useState<ProjectGroup[]>([]);
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -685,6 +686,10 @@ function GuideGroupPage() {
       .catch((err: unknown) => setError(errMsg(err)))
       .finally(() => setIsLoading(false));
   }, []);
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroupId((current) => (current === groupId ? null : groupId));
+  };
 
   if (isLoading) return <p className="text-sm text-[var(--text-muted)]">Loading your groups...</p>;
   if (error) return <p className="text-sm text-[var(--danger)]">{error}</p>;
@@ -701,33 +706,54 @@ function GuideGroupPage() {
         </div>
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
-          {groups.map((g) => (
-            <article key={g.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card">
-              <h3 className="font-semibold text-[var(--text-strong)]">{g.name}</h3>
-              <p className="mt-3 text-xs text-[var(--text-muted)]">Owner: {g.owner.name}</p>
-              {g.repositoryUrl ? (
-                <a href={g.repositoryUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs text-[var(--primary)] hover:underline">
-                  GitHub Repository
-                </a>
-              ) : null}
-              <ul className="mt-3 space-y-1">
-                {g.members.map((m) => (
-                  <li key={m.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/80 p-2 text-sm text-[var(--text-body)]">
-                    <div className="flex items-center gap-2">
-                      <Avatar name={m.name} />
-                      <div>
-                        <p className="text-sm font-medium text-[var(--text-strong)]">{m.name}</p>
-                        <p className="text-xs text-[var(--text-muted)]">{m.email}</p>
-                        <p className="text-xs text-[var(--text-muted)]">
-                          Branch: {m.branch ?? "-"} · Division: {m.division ?? "-"} · Roll No: {m.rollNo ?? "-"}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
+          {groups.map((g) => {
+            const isExpanded = expandedGroupId === g.id;
+            return (
+              <article key={g.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(g.id)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <h3 className="font-semibold text-[var(--text-strong)]">{g.name}</h3>
+                    <span className="text-xs font-medium uppercase tracking-[0.15em] text-[var(--primary)]">
+                      {isExpanded ? "Hide members" : "Show members"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">Members: {g.members.length}</p>
+                </button>
+
+                {isExpanded ? (
+                  <div className="mt-4 space-y-3">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--primary)]">Group details</p>
+                    <p className="text-sm text-[var(--text-muted)]">Owner: {g.owner.name}</p>
+                    {g.repositoryUrl ? (
+                      <a href={g.repositoryUrl} target="_blank" rel="noreferrer" className="inline-block text-xs text-[var(--primary)] hover:underline">
+                        GitHub Repository
+                      </a>
+                    ) : null}
+                    <ul className="mt-3 space-y-2">
+                      {g.members.map((m) => (
+                        <li key={m.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/80 p-3 text-sm text-[var(--text-body)]">
+                          <div className="flex items-start gap-3">
+                            <Avatar name={m.name} />
+                            <div>
+                              <p className="text-sm font-semibold text-[var(--text-strong)]">{m.name}</p>
+                              <p className="text-xs text-[var(--text-muted)]">{m.email}</p>
+                              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                                Branch: {m.branch ?? "-"} · Division: {m.division ?? "-"} · Roll No: {m.rollNo ?? "-"}
+                              </p>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

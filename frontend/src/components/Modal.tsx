@@ -5,10 +5,13 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  size?: "default" | "large";
 }
 
-const Modal = ({ open, title, children, onClose }: ModalProps) => {
+const Modal = ({ open, title, children, onClose, size = "default" }: ModalProps) => {
   if (!open) return null;
+
+  const maxWidthClass = size === "large" ? "max-w-5xl" : "max-w-2xl";
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--bg-0)]/80 p-4 backdrop-blur-md">
@@ -18,7 +21,7 @@ const Modal = ({ open, title, children, onClose }: ModalProps) => {
         aria-label="Close modal backdrop"
         onClick={onClose}
       />
-      <div className="glass-panel relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-[24px] border border-[var(--border)] text-[var(--text-body)] p-6 shadow-card md:p-8">
+      <div className={`glass-panel relative w-full ${maxWidthClass} max-h-[90vh] overflow-y-auto rounded-[24px] border border-[var(--border)] text-[var(--text-body)] p-6 shadow-card md:p-8`}>
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--primary)] font-semibold">Workspace dialog</p>

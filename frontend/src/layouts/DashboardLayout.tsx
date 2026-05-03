@@ -2,7 +2,7 @@ import { NavLink, Outlet, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../context/ThemeContext";
 import Button from "../components/Button";
-import { Home, Users, LogOut, Shuffle, ContactRound, Megaphone, Sun, Moon, GraduationCap, LayoutDashboard, Bell } from "lucide-react";
+import { Home, Users, LogOut, Shuffle, ContactRound, Megaphone, Sun, Moon, GraduationCap, LayoutDashboard, Bell, ListTodo, ListChecks } from "lucide-react";
 
 const DashboardLayout = () => {
   const { user, signOut } = useAuth();
@@ -40,7 +40,13 @@ const DashboardLayout = () => {
             <nav className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar mx-4">
               <NavLink className={navItemClass} to="/dashboard"><Home size={20} /><span className="hidden lg:block">Dashboard</span></NavLink>
               <NavLink className={navItemClass} to="/groups"><Users size={20} /><span className="hidden lg:block">Groups</span></NavLink>
-              
+              {user?.role === "guide" && (
+                <>
+                  <NavLink className={navItemClass} to="/guide/projects"><ListTodo size={20} /><span className="hidden lg:block">Mentoring</span></NavLink>
+                  <NavLink className={navItemClass} to="/tasks"><ListChecks size={20} /><span className="hidden lg:block">Tasks</span></NavLink>
+                  <NavLink className={navItemClass} to="/guide/subjects"><GraduationCap size={20} /><span className="hidden lg:block">Subjects</span></NavLink>
+                </>
+              )}
               {user?.role === "admin" && (
                 <>
                   <NavLink className={navItemClass} to="/admin/edi-guide-assignment"><Shuffle size={20} /><span className="hidden lg:block">Assignment</span></NavLink>

@@ -7,8 +7,9 @@ import Modal from "../components/Modal";
 import { useAuth } from "../hooks/useAuth";
 import { addGroupProject, fetchMyGroup, updateGroupProject, uploadProjectDocuments, deleteProjectDocument } from "../services/group.api";
 import { fetchAllSubjects, type Subject } from "../services/subject.api";
-import type { GroupProject, ProjectGroup } from "../types/group.types";
+import type { GroupProject, ProjectGroup, ProjectDocument } from "../types/group.types";
 import { selectEdiMajorProjectGroup } from "../utils/groupSelection";
+import { DocumentPreview, getDocumentUrl } from "../utils/documentPreview";
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 B";
@@ -41,6 +42,8 @@ const StudentProjectsPage = () => {
   const [docError, setDocError] = useState("");
   const [docSuccess, setDocSuccess] = useState("");
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<ProjectDocument | null>(null);
+  const [isDocPreviewOpen, setIsDocPreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -129,6 +132,16 @@ const StudentProjectsPage = () => {
     setSelectedFiles([]);
     setDocError("");
     setDocSuccess("");
+  };
+
+  const openDocPreview = (doc: ProjectDocument) => {
+    setPreviewDocument(doc);
+    setIsDocPreviewOpen(true);
+  };
+
+  const closeDocPreview = () => {
+    setPreviewDocument(null);
+    setIsDocPreviewOpen(false);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -464,7 +477,7 @@ const StudentProjectsPage = () => {
               multiple
               className="hidden"
               onChange={handleFileSelect}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.webp,.zip,.rar"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.xlsm,.ppt,.pptx,.txt,.md,.csv,.json,.xml,.png,.jpg,.jpeg,.webp,.zip,.rar"
             />
           </div>
 
@@ -525,7 +538,7 @@ const StudentProjectsPage = () => {
               {docProject!.documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-1)]/60 px-4 py-3 transition hover:border-[var(--primary)]/30"
+                  className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-1)]/60 px-4 py-3 transition hover:border-[var(--primary)]/30 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="shrink-0 rounded-lg bg-[var(--primary)]/10 p-2">
@@ -533,7 +546,7 @@ const StudentProjectsPage = () => {
                     </div>
                     <div className="min-w-0">
                       <a
-                        href={`${import.meta.env.VITE_API_BASE_URL?.replace("/api", "") ?? "http://localhost:5501"}/uploads/documents/${doc.filename}`}
+                        href={getDocumentUrl(doc)}
                         target="_blank"
                         rel="noreferrer"
                         className="block truncate text-sm font-medium text-[var(--text-strong)] hover:text-[var(--primary)] transition-colors"
@@ -546,20 +559,32 @@ const StudentProjectsPage = () => {
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleDeleteDocument(doc.id)}
-                    disabled={deletingDocId === doc.id}
-                    className="shrink-0 rounded-lg border border-transparent p-2 text-[var(--text-muted)] transition hover:border-[var(--danger)]/30 hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] disabled:opacity-50"
-                    title="Delete document"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openDocPreview(doc)}
+                      className="rounded-full border border-[var(--border)] bg-[var(--bg-1)] px-3 py-1 text-xs font-semibold text-[var(--text-strong)] transition hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
+                    >
+                      Preview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteDocument(doc.id)}
+                      disabled={deletingDocId === doc.id}
+                      className="shrink-0 rounded-lg border border-transparent p-2 text-[var(--text-muted)] transition hover:border-[var(--danger)]/30 hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] disabled:opacity-50"
+                      title="Delete document"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+      </Modal>
+      <Modal open={isDocPreviewOpen && Boolean(previewDocument)} title={previewDocument?.originalName ?? "Document Viewer"} onClose={closeDocPreview} size="large">
+        {previewDocument ? <DocumentPreview document={previewDocument} /> : null}
       </Modal>
     </div>
   );

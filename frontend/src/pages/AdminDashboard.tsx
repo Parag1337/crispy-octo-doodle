@@ -29,7 +29,18 @@ const AdminDashboard = () => {
 				fetchAllSubjects(),
 				fetchAllGroups()
 			]);
-			setSubjects(subsRes.data.data);
+			let allSubjects = subsRes.data.data;
+			
+			// Add EDI as a default subject if not already present
+			const ediExists = allSubjects.some((s) => s.id === "edi" || s.name.toLowerCase() === "engineering design innovation");
+			if (!ediExists) {
+				allSubjects = [
+					...allSubjects,
+					{ id: "edi", name: "Engineering Design Innovation", description: "EDI major project" }
+				];
+			}
+			
+			setSubjects(allSubjects);
 			setGroups(groupsRes.data.data);
 		} catch (err) {
 			console.error("Failed to load dashboard data", err);
@@ -57,6 +68,11 @@ const AdminDashboard = () => {
 
 	const handleDeleteSubject = async (id: string, e: React.MouseEvent) => {
 		e.stopPropagation();
+		// Prevent deletion of EDI (default subject)
+		if (id === "edi") {
+			alert("Engineering Design Innovation (EDI) is a default subject and cannot be deleted.");
+			return;
+		}
 		if (!confirm("Are you sure you want to delete this subject?")) return;
 		try {
 			await deleteSubject(id);
@@ -77,6 +93,11 @@ const AdminDashboard = () => {
 		const subjectId = normalize(subject.id);
 		const subjectName = normalize(subject.name);
 		const groupSubject = normalize(group.subject);
+
+		// Check if subject is EDI
+		if (subjectId === "edi" || subjectName === "engineering design innovation") {
+			return group.isEdiRegistered ?? false;
+		}
 
 		if (groupSubject && (groupSubject === subjectId || groupSubject === subjectName)) {
 			return true;
@@ -208,7 +229,14 @@ const AdminDashboard = () => {
 										<BookOpen size={20} />
 									</div>
 									<div>
-										<h3 className="text-lg font-bold text-[var(--text-strong)]">{subject.name}</h3>
+										<div className="flex items-center gap-2">
+											<h3 className="text-lg font-bold text-[var(--text-strong)]">{subject.name}</h3>
+											{subject.id === "edi" && (
+												<span className="inline-flex items-center rounded-full bg-[var(--primary)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--primary)]">
+													Default
+												</span>
+											)}
+										</div>
 										{subject.description && <p className="mt-1 text-sm text-[var(--text-muted)] line-clamp-1">{subject.description}</p>}
 									</div>
 								</div>
@@ -217,7 +245,11 @@ const AdminDashboard = () => {
 										<Users size={16} />
 										<span className="font-medium">{subjectGroups.length} Groups</span>
 									</div>
-									<button onClick={(e) => handleDeleteSubject(subject.id, e)} className="rounded-2xl p-2 text-[var(--text-muted)] transition hover:bg-[var(--danger)]/10 hover:text-[var(--danger)]">
+									<button 
+										onClick={(e) => handleDeleteSubject(subject.id, e)} 
+										disabled={subject.id === "edi"}
+										className="rounded-2xl p-2 text-[var(--text-muted)] transition hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] disabled:opacity-40 disabled:cursor-not-allowed"
+									>
 										<Trash2 size={16} />
 									</button>
 								</div>

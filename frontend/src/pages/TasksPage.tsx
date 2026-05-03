@@ -43,6 +43,7 @@ const TasksPage = () => {
   const [guideGroups, setGuideGroups] = useState<ProjectGroup[]>([]);
   const [guideTasks, setGuideTasks] = useState<Task[]>([]);
   const [groupId, setGroupId] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -94,6 +95,7 @@ const TasksPage = () => {
 
           const firstGroup = nextGroups[0] ?? null;
           setGroupId((current) => current || firstGroup?.id || "");
+          setProjectId((current) => current || firstGroup?.projects?.[0]?.id || "");
 
           const initialAssignee = (firstGroup?.members ?? []).find((member) => member.role === "student");
           setAssigneeId((current) => current || initialAssignee?.id || "");
@@ -124,6 +126,17 @@ const TasksPage = () => {
       setAssigneeId(nextAssignee);
     }
   }, [assigneeId, guideAssignees]);
+
+  useEffect(() => {
+    if (!selectedGuideGroup) {
+      setProjectId("");
+      return;
+    }
+
+    if (!selectedGuideGroup.projects.some((project) => project.id === projectId)) {
+      setProjectId(selectedGuideGroup.projects[0]?.id ?? "");
+    }
+  }, [projectId, selectedGuideGroup]);
 
   useEffect(() => {
     const loadCommits = async () => {
@@ -165,12 +178,18 @@ const TasksPage = () => {
       return;
     }
 
+    if (selectedGuideGroup?.projects?.length && !projectId) {
+      setGuideMessage("Please select a project for this group before assigning the task.");
+      return;
+    }
+
     setIsCreating(true);
     setGuideMessage("");
 
     try {
       const response = await createGuideTask({
         groupId,
+        projectId: projectId || undefined,
         assigneeId,
         title: title.trim(),
         description: description.trim(),
@@ -303,6 +322,23 @@ const TasksPage = () => {
               </select>
             </label>
 
+            <label htmlFor="guide-task-project" className="block">
+              <span className="mb-2 block text-sm font-medium text-[var(--text-body)]">Project</span>
+              <select
+                id="guide-task-project"
+                value={projectId}
+                onChange={(event) => setProjectId(event.target.value)}
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--bg-1)]/80 px-4 py-3 text-sm text-[var(--text-body)] shadow-sm outline-none transition hover:border-[color:var(--primary-light)]/50 focus:border-[var(--primary)] focus:ring-4 focus:ring-[color:var(--primary)]/12"
+              >
+                <option value="">Select a project</option>
+                {selectedGuideGroup?.projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.title} · {project.subjectName}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <label htmlFor="guide-task-assignee" className="block">
               <span className="mb-2 block text-sm font-medium text-[var(--text-body)]">Assignee</span>
               <select
@@ -375,7 +411,7 @@ const TasksPage = () => {
                   </div>
                   <p className="mt-2 text-xs text-[var(--text-muted)]">{task.description || "No description"}</p>
                   <p className="mt-2 text-xs text-[var(--text-muted)]">
-                    Group: {task.group?.name ?? "-"} · Assignee: {task.assignee?.name ?? "-"} · Due: {formatDate(task.dueDate)} · Priority: {task.priority}
+                    Project: {task.project?.title ?? task.group?.name ?? "-"} · Assignee: {task.assignee?.name ?? "-"} · Due: {formatDate(task.dueDate)} · Priority: {task.priority}
                   </p>
                   {task.status === "done" ? (
                     <div className="mt-2 space-y-1 text-xs text-[var(--text-muted)]">
