@@ -1,9 +1,24 @@
 import type { ReactNode } from "react";
+import { useTheme } from "../context/ThemeContext";
+import { Sun, Moon } from "lucide-react";
 
 const AuthLayout = ({ children }: { children: ReactNode }) => {
+  const { theme, toggleTheme } = useTheme();
+
   return (
-    <div className="min-h-screen bg-[var(--bg-0)] text-[var(--text-body)] px-4 py-6 md:px-6">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+    <div className="min-h-screen bg-[var(--bg-0)] text-[var(--text-body)] px-4 py-6 md:px-6 relative">
+      {/* Theme Toggle Button at top right */}
+      <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10">
+        <button
+          onClick={toggleTheme}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-1)] text-[var(--text-muted)] shadow-sm transition hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]"
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+        >
+          {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
+      </div>
+
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[1.05fr_0.95fr] pt-10 md:pt-0">
         <section className="reveal-up delay-1 glass-panel rounded-[28px] border border-[var(--border)] p-8 shadow-card md:p-10">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--primary)]">Academic Project Portal</p>
           <h1 className="mt-4 max-w-xl text-4xl font-bold leading-tight text-[var(--text-strong)] md:text-5xl">Manage groups, guides, and project work from one workspace.</h1>

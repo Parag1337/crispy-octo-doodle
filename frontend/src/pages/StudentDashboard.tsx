@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { BookOpen, ClipboardList, Sparkles } from "lucide-react";
+import { BookOpen, ClipboardList, Sparkles, FolderOpen, ListTodo } from "lucide-react";
+import VierpCard from "../components/VierpCard";
 import { fetchMyGroup } from "../services/group.api";
 import { fetchMyProgressUpdates } from "../services/progress.api";
 import { fetchMyTasks } from "../services/task.api";
@@ -105,50 +106,44 @@ const StudentDashboard = () => {
 
   return (
     <div className="grid gap-6 md:gap-8">
-      <section className="reveal-up delay-1 glass-panel rounded-[28px] border border-[var(--border)] bg-[var(--card-bg)] shadow-card p-6 md:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-1)]/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary)]">
-              <Sparkles size={14} /> Overview
-            </p>
-            <h2 className="mt-3 text-3xl font-bold text-[var(--text-strong)] md:text-4xl">Student Dashboard</h2>
-            
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2">
-        <Link
+      {/* VIERP Style Modules Grid */}
+      <section className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <VierpCard
+          title="EDI Major Project"
           to="/student/edi-major-project"
-          className="reveal-up delay-2 hover-glow lit-card rounded-[24px] border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card transition hover:-translate-y-0.5 hover:border-[var(--primary)]/50"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--primary)] font-medium">Major Project</p>
-              <h3 className="mt-2 text-xl font-semibold text-[var(--text-strong)]">EDI</h3>
-            </div>
-            <div className="rounded-2xl bg-[var(--primary)]/10 p-3 text-[var(--primary)]">
-              <ClipboardList size={20} />
-            </div>
-          </div>
-          <p className="mt-3 text-sm text-[var(--text-muted)]">Open the EDI major project workspace, group details, and submission flow.</p>
-        </Link>
-
-        <Link
+          icon={ClipboardList}
+          iconColor="text-[#195baf]"
+          iconBg="bg-white"
+          gradientFrom="from-[#dbeafe]"
+          gradientTo="to-white"
+        />
+        <VierpCard
+          title="Course Project"
           to="/student/course-project"
-          className="reveal-up delay-3 hover-glow lit-card rounded-[24px] border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card transition hover:-translate-y-0.5 hover:border-[var(--primary)]/50"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--ok)] font-medium">Course Project</p>
-              <h3 className="mt-2 text-xl font-semibold text-[var(--text-strong)]">CP</h3>
-            </div>
-            <div className="rounded-2xl bg-[var(--ok)]/12 p-3 text-[var(--ok)]">
-              <BookOpen size={20} />
-            </div>
-          </div>
-          <p className="mt-3 text-sm text-[var(--text-muted)]">Open the course project workspace for planning, tracking, and team coordination.</p>
-        </Link>
+          icon={BookOpen}
+          iconColor="text-[#10b981]"
+          iconBg="bg-white"
+          gradientFrom="from-[#d1fae5]"
+          gradientTo="to-white"
+        />
+        <VierpCard
+          title="All Projects"
+          to="/student/projects"
+          icon={FolderOpen}
+          iconColor="text-[#f59e0b]"
+          iconBg="bg-white"
+          gradientFrom="from-[#fef3c7]"
+          gradientTo="to-white"
+        />
+        <VierpCard
+          title="My Tasks"
+          to="/tasks"
+          icon={ListTodo}
+          iconColor="text-[#8b5cf6]"
+          iconBg="bg-white"
+          gradientFrom="from-[#ede9fe]"
+          gradientTo="to-white"
+        />
       </section>
 
       <section className="grid gap-6 md:gap-8 lg:grid-cols-[1fr_1.2fr]">

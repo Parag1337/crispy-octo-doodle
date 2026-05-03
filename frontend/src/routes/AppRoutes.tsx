@@ -24,6 +24,7 @@ import AdminEdiGroupsPage from "../pages/AdminEdiGroupsPage";
 import AdminStudentsDirectoryPage from "../pages/AdminStudentsDirectoryPage";
 import AdminStudentsDivisionPage from "../pages/AdminStudentsDivisionPage";
 import AdminSendNoticePage from "../pages/AdminSendNoticePage";
+import NotificationsPage from "../pages/NotificationsPage";
 
 const DashboardHome = () => {
   const { user } = useAuth();
@@ -59,6 +60,7 @@ const AppRoutes = () => {
           <Route path="/admin/send-notice" element={<AdminSendNoticePage />} />
           <Route path="/admin/guides" element={<AdminGuidesPage />} />
           <Route path="/admin/guides/:guideId" element={<AdminGuideDetailsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
 

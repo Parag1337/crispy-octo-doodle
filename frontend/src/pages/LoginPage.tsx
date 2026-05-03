@@ -7,12 +7,14 @@ import AuthLayout from "../layouts/AuthLayout";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../context/ThemeContext";
 import { loginRequest, googleLoginRequest } from "../services/auth.api";
 import type { UserRole } from "../types/user.types";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { signIn, isAuthenticated } = useAuth();
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<UserRole>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -150,7 +152,7 @@ const LoginPage = () => {
           onSuccess={onGoogleSuccess}
           onError={() => setError("Google login failed")}
           useOneTap={false}
-          theme="filled_black"
+          theme={theme === "dark" ? "filled_black" : "outline"}
           shape="rectangular"
           text="signin_with"
         />

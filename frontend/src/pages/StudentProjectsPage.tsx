@@ -286,7 +286,7 @@ const StudentProjectsPage = () => {
       ) : (
         <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project: GroupProject) => (
-            <div key={project.id} className="relative reveal-up rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card transition hover:border-[var(--primary)]/50 hover:-translate-y-0.5">
+            <div key={project.id} className="relative reveal-up overflow-hidden rounded-2xl border border-[var(--border)] border-t-4 border-t-[var(--primary)] bg-[var(--card-bg)] p-5 shadow-card transition hover:border-[var(--primary)]/50 hover:-translate-y-1">
               {/* Header row: label + action buttons */}
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-[var(--primary)]">
