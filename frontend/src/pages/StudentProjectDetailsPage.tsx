@@ -133,9 +133,9 @@ const StudentProjectDetailsPage = () => {
     setGroup((current) =>
       current
         ? {
-            ...current,
-            projects: (current.projects ?? []).map((entry) => (entry.id === project.id ? { ...entry, repositoryUrl: nextUrl } : entry))
-          }
+          ...current,
+          projects: (current.projects ?? []).map((entry) => (entry.id === project.id ? { ...entry, repositoryUrl: nextUrl } : entry))
+        }
         : current
     );
     setSaveError("");

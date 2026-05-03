@@ -158,6 +158,7 @@
 | Kavya Sharma | kavya.sharma@vit.edu | 21BCS016 |
 
 ### CP - Operating System - Group 2
+| Student Name | Email | Roll No |
 
 - CP Guide: Dr. Sangeeta Menon
 | Student Name | Email | Roll No |
