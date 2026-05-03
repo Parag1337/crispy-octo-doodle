@@ -1,5 +1,17 @@
+import type { Request, Response } from "express";
+import { Types } from "mongoose";
+import multer from "multer";
+import path from "node:path";
+import fs from "node:fs";
+import { ProjectGroupModel } from "../models/projectGroup.model";
+import { SubjectModel } from "../models/subject.model";
+import { SystemSettingModel } from "../models/systemSetting.model";
+import { UserModel } from "../models/user.model";
+import type { AuthenticatedRequest } from "../types/auth.types";
+import { ApiResponse } from "../utils/ApiResponse";
+import { asyncHandler } from "../utils/asyncHandler";
+
 // ─── Public: view all group names, branch, division ─────────────────────────────
-import type { Request } from "express";
 export const getAllGroupNames = asyncHandler(async (_req: Request, res: Response) => {
 	const groups = await ProjectGroupModel.find({}, { name: 1, _id: 0 })
 		.populate({ path: "owner", select: "branch division" })
@@ -12,15 +24,6 @@ export const getAllGroupNames = asyncHandler(async (_req: Request, res: Response
 	}));
 	res.status(200).json(new ApiResponse(true, "Group names fetched", result));
 });
-import type { Response } from "express";
-import { Types } from "mongoose";
-import { ProjectGroupModel } from "../models/projectGroup.model";
-import { SubjectModel } from "../models/subject.model";
-import { SystemSettingModel } from "../models/systemSetting.model";
-import { UserModel } from "../models/user.model";
-import type { AuthenticatedRequest } from "../types/auth.types";
-import { ApiResponse } from "../utils/ApiResponse";
-import { asyncHandler } from "../utils/asyncHandler";
 
 const POPULATE = [
 	{ path: "owner", select: "name email branch division" },
@@ -104,7 +107,7 @@ const formatGroup = (g: Record<string, unknown>) => {
 	const members = (g.members as PopUser[])
 		.filter(Boolean)
 		.map((m) => m ? toMember(m) : null)
-		.filter(Boolean);
+		.filter((member): member is NonNullable<typeof member> => member !== null);
 
 	const finalMembers = ownerMember && !members.some((member) => member.id === ownerMember.id)
 		? [ownerMember, ...members]
@@ -128,6 +131,7 @@ const formatGroup = (g: Record<string, unknown>) => {
 				subjectName?: unknown;
 				guideName?: unknown;
 				repositoryUrl?: unknown;
+				documents?: unknown[];
 				createdBy?: unknown;
 				createdAt?: unknown;
 			};
@@ -142,6 +146,18 @@ const formatGroup = (g: Record<string, unknown>) => {
 				subjectName: String(project.subjectName ?? ""),
 				guideName: String(project.guideName ?? "Not assigned"),
 				repositoryUrl: (project.repositoryUrl as string | null | undefined) ?? null,
+				documents: ((project.documents as unknown[]) ?? []).map((doc) => {
+					const d = doc as { _id?: unknown; filename?: unknown; originalName?: unknown; mimeType?: unknown; size?: unknown; uploadedBy?: unknown; uploadedAt?: unknown };
+					return {
+						id: String(d._id ?? ""),
+						filename: String(d.filename ?? ""),
+						originalName: String(d.originalName ?? ""),
+						mimeType: String(d.mimeType ?? ""),
+						size: Number(d.size ?? 0),
+						uploadedBy: String(d.uploadedBy ?? ""),
+						uploadedAt: d.uploadedAt ? new Date(d.uploadedAt as string | number | Date).toISOString() : null
+					};
+				}),
 				createdBy: String(createdBy?._id ?? project.createdBy ?? ""),
 				createdAt: project.createdAt ? new Date(project.createdAt as string | number | Date).toISOString() : null
 			};
@@ -253,7 +269,7 @@ export const getMyInvites = asyncHandler(async (req: AuthenticatedRequest, res: 
 		.lean();
 
 	const result = groups.map((g) => {
-		const owner = g.owner as PopUser | null;
+		const owner = g.owner as unknown as PopUser | null;
 		return {
 			groupId: String(g._id),
 			groupName: g.name,
@@ -528,6 +544,7 @@ export const addGroupProject = asyncHandler(async (req: AuthenticatedRequest, re
 		subjectName,
 		guideName,
 		repositoryUrl: null,
+		documents: [],
 		createdBy: new Types.ObjectId(userId),
 		createdAt: new Date()
 	});
@@ -579,6 +596,135 @@ export const updateGroupProject = asyncHandler(async (req: AuthenticatedRequest,
 	await group.save();
 	const populated = await group.populate(POPULATE);
 	res.status(200).json(new ApiResponse(true, "Project updated", formatGroup(populated.toObject() as unknown as Record<string, unknown>)));
+});
+
+// ─── Multer config for project document uploads ────────────────────────────
+const UPLOADS_DIR = path.resolve(__dirname, "../../uploads/documents");
+
+const storage = multer.diskStorage({
+	destination: (_req, _file, cb) => {
+		fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+		cb(null, UPLOADS_DIR);
+	},
+	filename: (_req, file, cb) => {
+		const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+		const ext = path.extname(file.originalname);
+		cb(null, `${uniqueSuffix}${ext}`);
+	}
+});
+
+export const uploadMiddleware = multer({
+	storage,
+	limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB per file
+	fileFilter: (_req, file, cb) => {
+		const allowedMimeTypes = [
+			"application/pdf",
+			"application/msword",
+			"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+			"application/vnd.ms-excel",
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			"application/vnd.ms-powerpoint",
+			"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+			"text/plain",
+			"image/png",
+			"image/jpeg",
+			"image/webp",
+			"application/zip",
+			"application/x-rar-compressed"
+		];
+		if (allowedMimeTypes.includes(file.mimetype)) {
+			cb(null, true);
+		} else {
+			cb(new Error(`File type ${file.mimetype} is not allowed`));
+		}
+	}
+});
+
+// ─── Group members: upload documents to a project ──────────────────────────
+export const uploadProjectDocuments = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+	const userId = req.user!.userId;
+	const { id, projectId } = req.params as { id: string; projectId: string };
+	const files = req.files as Express.Multer.File[] | undefined;
+
+	if (!files || files.length === 0) {
+		res.status(400).json(new ApiResponse(false, "No files uploaded", null));
+		return;
+	}
+
+	const group = await ProjectGroupModel.findById(id);
+	if (!group || !userBelongsToGroup(group.toObject() as unknown as { owner: unknown; members: unknown[] }, userId)) {
+		// Clean up uploaded files
+		for (const file of files) {
+			fs.unlink(file.path, () => {});
+		}
+		res.status(404).json(new ApiResponse(false, "Group not found or unauthorized", null));
+		return;
+	}
+
+	const project = group.projects?.find((entry) => String(entry._id) === projectId);
+	if (!project) {
+		for (const file of files) {
+			fs.unlink(file.path, () => {});
+		}
+		res.status(404).json(new ApiResponse(false, "Project not found", null));
+		return;
+	}
+
+	if (!project.documents) {
+		project.documents = [];
+	}
+
+	for (const file of files) {
+		project.documents.push({
+			_id: new Types.ObjectId(),
+			filename: file.filename,
+			originalName: file.originalname,
+			mimeType: file.mimetype,
+			size: file.size,
+			uploadedBy: new Types.ObjectId(userId),
+			uploadedAt: new Date()
+		});
+	}
+
+	await group.save();
+	const populated = await group.populate(POPULATE);
+	res.status(201).json(new ApiResponse(true, `${files.length} document(s) uploaded`, formatGroup(populated.toObject() as unknown as Record<string, unknown>)));
+});
+
+// ─── Group members: delete a document from a project ───────────────────────
+export const deleteProjectDocument = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+	const userId = req.user!.userId;
+	const { id, projectId, documentId } = req.params as { id: string; projectId: string; documentId: string };
+
+	const group = await ProjectGroupModel.findById(id);
+	if (!group || !userBelongsToGroup(group.toObject() as unknown as { owner: unknown; members: unknown[] }, userId)) {
+		res.status(404).json(new ApiResponse(false, "Group not found or unauthorized", null));
+		return;
+	}
+
+	const project = group.projects?.find((entry) => String(entry._id) === projectId);
+	if (!project) {
+		res.status(404).json(new ApiResponse(false, "Project not found", null));
+		return;
+	}
+
+	const docIndex = (project.documents ?? []).findIndex((doc) => String(doc._id) === documentId);
+	if (docIndex === -1) {
+		res.status(404).json(new ApiResponse(false, "Document not found", null));
+		return;
+	}
+
+	const removedDoc = project.documents[docIndex];
+	const filePath = path.join(UPLOADS_DIR, removedDoc.filename);
+
+	project.documents.splice(docIndex, 1);
+	await group.save();
+
+	// Clean up the file from disk (best-effort)
+	fs.unlink(filePath, () => {});
+
+	const populated = await group.populate(POPULATE);
+	res.status(200).json(new ApiResponse(true, "Document deleted", formatGroup(populated.toObject() as unknown as Record<string, unknown>)));
 });
 
 // ─── Student owner: register a subject for course project ───────────────────

@@ -1,6 +1,7 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
+import path from "node:path";
 import { env } from "./config/env";
 import authRoutes from "./routes/auth.routes";
 import taskRoutes from "./routes/task.routes";
@@ -20,6 +21,9 @@ app.use(
 );
 app.use(cookieParser());
 app.use(express.json());
+
+// Serve uploaded documents as static files
+app.use("/uploads/documents", express.static(path.resolve(__dirname, "../uploads/documents")));
 
 app.get("/api/health", (_req, res) => {
 	res.status(200).json({ success: true, message: "Server is healthy" });

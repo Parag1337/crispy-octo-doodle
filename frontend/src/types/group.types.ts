@@ -24,6 +24,16 @@ export interface GuideUser {
   ediAssignedCount?: number;
 }
 
+export interface ProjectDocument {
+  id: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedBy: string;
+  uploadedAt: string | null;
+}
+
 export interface GroupProject {
   id: string;
   title: string;
@@ -31,6 +41,7 @@ export interface GroupProject {
   subjectName: string;
   guideName: string;
   repositoryUrl?: string | null;
+  documents: ProjectDocument[];
   createdBy: string;
   createdAt: string | null;
 }

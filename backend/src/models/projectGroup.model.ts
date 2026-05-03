@@ -16,6 +16,15 @@ export interface IProjectGroup {
 		subjectName: string;
 		guideName: string;
 		repositoryUrl?: string | null;
+		documents: {
+			_id: Types.ObjectId;
+			filename: string;
+			originalName: string;
+			mimeType: string;
+			size: number;
+			uploadedBy: Types.ObjectId;
+			uploadedAt: Date;
+		}[];
 		createdBy: Types.ObjectId;
 		createdAt: Date;
 	}[];
@@ -47,6 +56,16 @@ const projectGroupSchema = new Schema<IProjectGroup>(
 				subjectName: { type: String, required: true, trim: true },
 				guideName: { type: String, required: true, trim: true },
 				repositoryUrl: { type: String, trim: true, default: null },
+				documents: [
+					{
+						filename: { type: String, required: true },
+						originalName: { type: String, required: true },
+						mimeType: { type: String, required: true },
+						size: { type: Number, required: true },
+						uploadedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+						uploadedAt: { type: Date, default: Date.now }
+					}
+				],
 				createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
 				createdAt: { type: Date, default: Date.now }
 			}

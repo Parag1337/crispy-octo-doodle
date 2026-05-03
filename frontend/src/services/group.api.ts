@@ -83,3 +83,16 @@ export const addGroupProject = (groupId: string, data: { title: string; subjectI
 
 export const updateGroupProject = (groupId: string, projectId: string, data: { repositoryUrl?: string | null; title?: string }) =>
 	api.patch<AR<ProjectGroup>>(`/groups/${groupId}/projects/${projectId}`, data);
+
+export const uploadProjectDocuments = (groupId: string, projectId: string, files: File[]) => {
+	const formData = new FormData();
+	for (const file of files) {
+		formData.append("documents", file);
+	}
+	return api.post<AR<ProjectGroup>>(`/groups/${groupId}/projects/${projectId}/documents`, formData, {
+		headers: { "Content-Type": "multipart/form-data" }
+	});
+};
+
+export const deleteProjectDocument = (groupId: string, projectId: string, documentId: string) =>
+	api.delete<AR<ProjectGroup>>(`/groups/${groupId}/projects/${projectId}/documents/${documentId}`);

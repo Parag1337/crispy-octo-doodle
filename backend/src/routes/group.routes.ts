@@ -4,6 +4,7 @@ import {
 	inviteStudent, respondToInvite, cancelInvite,
 	removeMember, leaveGroup, updateGroup, deleteGroup,
 	addGroupProject, updateGroupProject,
+	uploadProjectDocuments, deleteProjectDocument, uploadMiddleware,
 	registerCourseProjectSubject, assignCourseProjectLabFaculty,
 	registerEdiGroup,
 	getGuideGroups,
@@ -36,6 +37,8 @@ router.post("/", authenticate, authorizeRoles("student"), createGroup);
 router.patch("/:id",                        authenticate, authorizeRoles("student"), updateGroup);
 router.post("/:id/projects",               authenticate, authorizeRoles("student"), addGroupProject);
 router.patch("/:id/projects/:projectId",    authenticate, authorizeRoles("student"), updateGroupProject);
+router.post("/:id/projects/:projectId/documents", authenticate, authorizeRoles("student"), uploadMiddleware.array("documents", 5), uploadProjectDocuments);
+router.delete("/:id/projects/:projectId/documents/:documentId", authenticate, authorizeRoles("student"), deleteProjectDocument);
 router.delete("/:id",                       authenticate, authorizeRoles("student"), deleteGroup);
 router.delete("/:id/leave",                 authenticate, authorizeRoles("student"), leaveGroup);
 router.post("/:id/register-course-project", authenticate, authorizeRoles("student"), registerCourseProjectSubject);
