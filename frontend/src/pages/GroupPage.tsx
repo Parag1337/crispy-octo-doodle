@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -679,6 +679,7 @@ function GuideGroupPage() {
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filterBy, setFilterBy] = useState<"none" | "division" | "year">("none");
 
   useEffect(() => {
     fetchGuideGroups()
@@ -691,69 +692,127 @@ function GuideGroupPage() {
     setExpandedGroupId((current) => (current === groupId ? null : groupId));
   };
 
+  const groupedGroups = useMemo(() => {
+    if (filterBy === "none") return { "All Groups": groups };
+
+    const extractYear = (division: string) => {
+      if (!division) return "Unknown Year";
+      const match = division.match(/^(FE|SE|TE|BE|FY|SY|TY|BTech|MTech)/i);
+      return match ? match[0].toUpperCase() : "Standard Year";
+    };
+
+    const grouped: Record<string, ProjectGroup[]> = {};
+    groups.forEach((g) => {
+      let key = "Other";
+      if (filterBy === "division") {
+        key = g.owner.division ? `Division ${g.owner.division}` : "Unassigned Division";
+      } else if (filterBy === "year") {
+        key = extractYear(g.owner.division || "");
+      }
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(g);
+    });
+
+    // Sort keys alphabetically
+    return Object.keys(grouped).sort().reduce((acc, key) => {
+      acc[key] = grouped[key];
+      return acc;
+    }, {} as Record<string, ProjectGroup[]>);
+  }, [groups, filterBy]);
+
   if (isLoading) return <p className="text-sm text-[var(--text-muted)]">Loading your groups...</p>;
   if (error) return <p className="text-sm text-[var(--danger)]">{error}</p>;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--primary)]">Assigned to you</p>
-        <h2 className="mt-1 text-3xl font-bold tracking-tight text-[var(--text-strong)]">My Groups</h2>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--primary)]">Assigned to you</p>
+          <h2 className="mt-1 text-3xl font-bold tracking-tight text-[var(--text-strong)]">My Groups</h2>
+        </div>
+        {groups.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="filter-groups" className="text-sm font-medium text-[var(--text-muted)]">Sort by:</label>
+            <select
+              id="filter-groups"
+              value={filterBy}
+              onChange={(e) => setFilterBy(e.target.value as "none" | "division" | "year")}
+              className="rounded-lg border border-[var(--border)] bg-[var(--bg-0)] px-3 py-1.5 text-sm text-[var(--text-body)] outline-none ring-[var(--focus)] transition focus:border-[var(--focus)] focus:ring"
+            >
+              <option value="none">Default</option>
+              <option value="division">Division</option>
+              <option value="year">Year</option>
+            </select>
+          </div>
+        )}
       </div>
+      
       {groups.length === 0 ? (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-10 text-center shadow-card">
           <p className="text-[var(--text-muted)]">No groups assigned to you yet.</p>
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
-          {groups.map((g) => {
-            const isExpanded = expandedGroupId === g.id;
-            return (
-              <article key={g.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card">
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(g.id)}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="font-semibold text-[var(--text-strong)]">{g.name}</h3>
-                    <span className="text-xs font-medium uppercase tracking-[0.15em] text-[var(--primary)]">
-                      {isExpanded ? "Hide members" : "Show members"}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">Members: {g.members.length}</p>
-                </button>
+        <div className="space-y-8">
+          {Object.entries(groupedGroups).map(([groupingKey, groupList]) => (
+            <div key={groupingKey} className="space-y-4">
+              {filterBy !== "none" && (
+                <h3 className="text-lg font-bold text-[var(--text-strong)] border-b border-[var(--border)] pb-2">
+                  {groupingKey}
+                  <span className="ml-2 text-sm font-normal text-[var(--text-muted)]">({groupList.length})</span>
+                </h3>
+              )}
+              <div className="grid gap-5 lg:grid-cols-2">
+                {groupList.map((g) => {
+                  const isExpanded = expandedGroupId === g.id;
+                  return (
+                    <article key={g.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-card">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(g.id)}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <h3 className="font-semibold text-[var(--text-strong)]">{g.name}</h3>
+                          <span className="text-xs font-medium uppercase tracking-[0.15em] text-[var(--primary)]">
+                            {isExpanded ? "Hide members" : "Show members"}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-[var(--text-muted)]">Members: {g.members.length}</p>
+                      </button>
 
-                {isExpanded ? (
-                  <div className="mt-4 space-y-3">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--primary)]">Group details</p>
-                    <p className="text-sm text-[var(--text-muted)]">Owner: {g.owner.name}</p>
-                    {g.repositoryUrl ? (
-                      <a href={g.repositoryUrl} target="_blank" rel="noreferrer" className="inline-block text-xs text-[var(--primary)] hover:underline">
-                        GitHub Repository
-                      </a>
-                    ) : null}
-                    <ul className="mt-3 space-y-2">
-                      {g.members.map((m) => (
-                        <li key={m.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/80 p-3 text-sm text-[var(--text-body)]">
-                          <div className="flex items-start gap-3">
-                            <Avatar name={m.name} />
-                            <div>
-                              <p className="text-sm font-semibold text-[var(--text-strong)]">{m.name}</p>
-                              <p className="text-xs text-[var(--text-muted)]">{m.email}</p>
-                              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                Branch: {m.branch ?? "-"} · Division: {m.division ?? "-"} · Roll No: {m.rollNo ?? "-"}
-                              </p>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </article>
-            );
-          })}
+                      {isExpanded ? (
+                        <div className="mt-4 space-y-3">
+                          <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--primary)]">Group details</p>
+                          <p className="text-sm text-[var(--text-muted)]">Owner: {g.owner.name}</p>
+                          {g.repositoryUrl ? (
+                            <a href={g.repositoryUrl} target="_blank" rel="noreferrer" className="inline-block text-xs text-[var(--primary)] hover:underline">
+                              GitHub Repository
+                            </a>
+                          ) : null}
+                          <ul className="mt-3 space-y-2">
+                            {g.members.map((m) => (
+                              <li key={m.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/80 p-3 text-sm text-[var(--text-body)]">
+                                <div className="flex items-start gap-3">
+                                  <Avatar name={m.name} />
+                                  <div>
+                                    <p className="text-sm font-semibold text-[var(--text-strong)]">{m.name}</p>
+                                    <p className="text-xs text-[var(--text-muted)]">{m.email}</p>
+                                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                                      Branch: {m.branch ?? "-"} · Division: {m.division ?? "-"} · Roll No: {m.rollNo ?? "-"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

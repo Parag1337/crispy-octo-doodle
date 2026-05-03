@@ -153,7 +153,11 @@ const StudentDashboard = () => {
             <div className="mt-3 space-y-3">
               <div>
                 <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">Group Name</p>
-                <p className="mt-1 text-lg font-semibold text-[var(--text-strong)]">{group.name}</p>
+                <div className="mt-1 flex items-center justify-between">
+                  <p className="text-lg font-semibold text-[var(--text-strong)]">{group.name}</p>
+                  {/* EDI Badge */}
+                  <span className="rounded bg-[#0d9488]/15 px-2 py-0.5 text-xs font-bold tracking-widest text-[#0d9488] border border-[#0d9488]/30">EDI</span>
+                </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="rounded-md border border-[var(--border)] bg-[var(--bg-1)]/80 p-3">
@@ -164,16 +168,6 @@ const StudentDashboard = () => {
                   <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">Guide</p>
                   <p className="mt-1 text-sm font-medium text-[var(--text-body)]">{group.ediGuide?.name ?? "Not assigned"}</p>
                 </div>
-              </div>
-              <div className="rounded-md border border-[var(--border)] bg-[var(--bg-1)]/80 p-3">
-                <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">GitHub Repository</p>
-                {group.repositoryUrl ? (
-                  <a href={group.repositoryUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-[var(--primary)] hover:underline">
-                    {group.repositoryUrl}
-                  </a>
-                ) : (
-                  <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">Not added yet</p>
-                )}
               </div>
             </div>
           ) : (

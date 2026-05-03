@@ -1,21 +1,28 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Bell, Users, Check, X, Megaphone, ListTodo } from "lucide-react";
+import { Bell, Users, Check, X, ListTodo, Info } from "lucide-react";
 import { fetchMyTasks } from "../services/task.api";
+import { fetchMyInvites, respondToInvite } from "../services/group.api";
 import type { Task } from "../types/task.types";
+import type { PendingInvite } from "../types/group.types";
 import { formatDate } from "../utils/helpers";
 
 const NotificationsPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [invites, setInvites] = useState<PendingInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [previewItem, setPreviewItem] = useState<{ title: string; subtitle: string; content: string } | null>(null);
 
   useEffect(() => {
-    const loadTasks = async () => {
+    const loadData = async () => {
       try {
-        const response = await fetchMyTasks();
-        // Only show pending/in-progress tasks as notifications
-        setTasks(response.data.data.filter((t: Task) => t.status !== "done"));
+        const [tasksRes, invitesRes] = await Promise.all([
+          fetchMyTasks(),
+          fetchMyInvites()
+        ]);
+        setTasks(tasksRes.data.data.filter((t: Task) => t.status !== "done"));
+        setInvites(invitesRes.data.data);
       } catch (err) {
         if (axios.isAxiosError(err)) {
           setError(err.response?.data?.message || "Failed to load notifications");
@@ -24,30 +31,38 @@ const NotificationsPage = () => {
         setIsLoading(false);
       }
     };
-    void loadTasks();
+    void loadData();
   }, []);
 
-  // Mock Data for UI demonstration
-  const mockInvites = [
-    { id: 1, groupName: "Computer Engineering-A-2", sender: "Rahul Sharma", date: "2 hours ago" }
-  ];
+  const handleInviteResponse = async (groupId: string, action: "accept" | "decline") => {
+    try {
+      await respondToInvite(groupId, action);
+      setInvites((prev) => prev.filter((inv) => inv.group._id !== groupId));
+    } catch (err) {
+      alert("Failed to respond to invitation");
+    }
+  };
 
-  const mockAdminNotices = [
-    { id: 1, title: "Final Project Submission Guidelines", sender: "System Admin", date: "1 day ago" },
-    { id: 2, title: "Server Maintenance Tomorrow", sender: "System Admin", date: "3 days ago" }
-  ];
+  const openTaskPreview = (task: Task) => {
+    setPreviewItem({
+      title: task.title,
+      subtitle: `Due: ${formatDate(task.dueDate)} | Priority: ${task.priority}`,
+      content: task.description || "No additional description provided for this task."
+    });
+  };
 
   if (isLoading) {
-    return <div className="text-sm text-[var(--text-muted)]">Loading notifications...</div>;
+    return <div className="text-sm text-[var(--text-muted)] p-8">Loading notifications...</div>;
   }
 
   return (
-    <div className="mx-auto max-w-4xl animate-fade-in space-y-8">
+    <div className="mx-auto max-w-4xl animate-fade-in space-y-8 relative">
       <div>
         <h1 className="text-3xl font-bold text-[var(--text-strong)] flex items-center gap-3">
           <Bell className="text-[var(--primary)]" size={32} /> Notifications Dashboard
         </h1>
-        <p className="mt-2 text-[var(--text-muted)]">Manage your group invitations, task assignments, and admin notices.</p>
+        <p className="mt-2 text-[var(--text-muted)]">Manage your group invitations and task assignments.</p>
+        {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
       </div>
 
       <div className="grid gap-6">
@@ -58,26 +73,32 @@ const NotificationsPage = () => {
             <h2 className="text-lg font-semibold text-[var(--text-strong)] flex items-center gap-2">
               <Users size={20} className="text-[var(--primary)]" /> Pending Invitations
             </h2>
-            <span className="bg-[var(--primary)] text-white text-xs px-2 py-1 rounded-full font-bold">{mockInvites.length}</span>
+            <span className="bg-[var(--primary)] text-white text-xs px-2 py-1 rounded-full font-bold">{invites.length}</span>
           </div>
           <div className="divide-y divide-[var(--border)]">
-            {mockInvites.map((invite) => (
-              <div key={invite.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:bg-[var(--bg-1)]/50">
+            {invites.map((invite) => (
+              <div key={invite.group._id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:bg-[var(--bg-1)]/50">
                 <div>
-                  <p className="font-medium text-[var(--text-strong)] text-base">Invitation to join <span className="text-[var(--primary)]">{invite.groupName}</span></p>
-                  <p className="text-sm text-[var(--text-muted)] mt-1">Sent by {invite.sender} • {invite.date}</p>
+                  <p className="font-medium text-[var(--text-strong)] text-base">Invitation to join <span className="text-[var(--primary)]">{invite.group.name}</span></p>
+                  <p className="text-sm text-[var(--text-muted)] mt-1">Sent on {formatDate(invite.invitedAt)}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1 px-4 py-2 bg-[var(--ok)]/10 text-[var(--ok)] rounded-lg text-sm font-medium hover:bg-[var(--ok)]/20 transition">
+                  <button 
+                    onClick={() => handleInviteResponse(invite.group._id, "accept")}
+                    className="flex items-center gap-1 px-4 py-2 bg-[var(--ok)]/10 text-[var(--ok)] rounded-lg text-sm font-medium hover:bg-[var(--ok)]/20 transition"
+                  >
                     <Check size={16} /> Accept
                   </button>
-                  <button className="flex items-center gap-1 px-4 py-2 bg-[var(--danger)]/10 text-[var(--danger)] rounded-lg text-sm font-medium hover:bg-[var(--danger)]/20 transition">
+                  <button 
+                    onClick={() => handleInviteResponse(invite.group._id, "decline")}
+                    className="flex items-center gap-1 px-4 py-2 bg-[var(--danger)]/10 text-[var(--danger)] rounded-lg text-sm font-medium hover:bg-[var(--danger)]/20 transition"
+                  >
                     <X size={16} /> Decline
                   </button>
                 </div>
               </div>
             ))}
-            {mockInvites.length === 0 && (
+            {invites.length === 0 && (
               <p className="p-6 text-sm text-[var(--text-muted)] text-center">No pending invitations.</p>
             )}
           </div>
@@ -93,10 +114,14 @@ const NotificationsPage = () => {
           </div>
           <div className="divide-y divide-[var(--border)]">
             {tasks.map((task) => (
-              <div key={task.id} className="p-6 flex flex-col sm:flex-row justify-between gap-4 transition hover:bg-[var(--bg-1)]/50">
+              <div 
+                key={task.id} 
+                onClick={() => openTaskPreview(task)}
+                className="p-6 flex flex-col sm:flex-row justify-between gap-4 transition hover:bg-[var(--bg-1)]/80 cursor-pointer"
+              >
                 <div>
                   <p className="font-medium text-[var(--text-strong)] text-base">{task.title}</p>
-                  <p className="text-sm text-[var(--text-muted)] mt-1">Assigned by your Guide</p>
+                  <p className="text-sm text-[var(--text-muted)] mt-1 line-clamp-1">{task.description || "Click to view details"}</p>
                 </div>
                 <div className="text-left sm:text-right">
                   <p className="text-sm font-medium text-[var(--text-strong)]">Due: {formatDate(task.dueDate)}</p>
@@ -113,32 +138,47 @@ const NotificationsPage = () => {
             {tasks.length === 0 && (
               <p className="p-6 text-sm text-[var(--text-muted)] text-center">No active task assignments.</p>
             )}
-            {error && <p className="p-6 text-sm text-[var(--danger)] text-center">{error}</p>}
-          </div>
-        </section>
-
-        {/* Section: Admin Notices */}
-        <section className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden">
-          <div className="border-b border-[var(--border)] bg-[var(--bg-1)] px-6 py-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[var(--text-strong)] flex items-center gap-2">
-              <Megaphone size={20} className="text-[var(--warn)]" /> Admin Notices
-            </h2>
-            <span className="bg-[var(--warn)] text-white text-xs px-2 py-1 rounded-full font-bold">{mockAdminNotices.length}</span>
-          </div>
-          <div className="divide-y divide-[var(--border)]">
-            {mockAdminNotices.map((notice) => (
-              <div key={notice.id} className="p-6 transition hover:bg-[var(--bg-1)]/50">
-                <p className="font-medium text-[var(--text-strong)] text-base">{notice.title}</p>
-                <p className="text-sm text-[var(--text-muted)] mt-1">From {notice.sender} • {notice.date}</p>
-              </div>
-            ))}
-            {mockAdminNotices.length === 0 && (
-              <p className="p-6 text-sm text-[var(--text-muted)] text-center">No new admin notices.</p>
-            )}
           </div>
         </section>
 
       </div>
+
+      {/* Preview Modal */}
+      {previewItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in">
+            <div className="p-6 border-b border-[var(--border)] flex justify-between items-start bg-[var(--bg-1)]">
+              <div>
+                <h3 className="text-xl font-bold text-[var(--text-strong)] flex items-center gap-2">
+                  <Info size={20} className="text-[var(--primary)]" /> Message Preview
+                </h3>
+                <p className="text-sm text-[var(--text-muted)] mt-1">{previewItem.subtitle}</p>
+              </div>
+              <button 
+                onClick={() => setPreviewItem(null)}
+                className="text-[var(--text-muted)] hover:text-[var(--danger)] transition"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6">
+              <h4 className="font-semibold text-[var(--text-strong)] mb-4">{previewItem.title}</h4>
+              <div className="text-sm text-[var(--text-body)] whitespace-pre-wrap leading-relaxed bg-[var(--bg-0)] p-4 rounded-xl border border-[var(--border)]">
+                {previewItem.content}
+              </div>
+            </div>
+            <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-1)] flex justify-end">
+              <button 
+                onClick={() => setPreviewItem(null)}
+                className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--primary)]/90 transition"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
