@@ -8,6 +8,7 @@ import Modal from "../components/Modal";
 import { assignCourseProjectLabFaculty, fetchGuidesBySubject, fetchMyGroup, registerCourseProjectSubject } from "../services/group.api";
 import { fetchAllSubjects, type Subject } from "../services/subject.api";
 import type { GuideUser, ProjectGroup } from "../types/group.types";
+import { selectEdiMajorProjectGroup } from "../utils/groupSelection";
 
 function getErrorMessage(err: unknown, fallback = "Something went wrong.") {
 	if (axios.isAxiosError(err)) {
@@ -41,7 +42,15 @@ const CourseProjectPage = () => {
 					(subject) => !/\bedi\b/i.test(subject.name)
 				);
 				setSubjects(nonEdiSubjects);
-				setGroup(groupResponse.data.data[0] ?? null);
+				
+				const groups = groupResponse.data.data;
+				// First, try to find a group that has course project registrations
+				let userGroup: typeof groups[0] | null | undefined = groups.find((g) => (g.courseProjectRegistrations?.length ?? 0) > 0);
+				// If no group has registrations, fall back to EDI major project group
+				if (!userGroup) {
+					userGroup = selectEdiMajorProjectGroup(groups);
+				}
+				setGroup(userGroup ?? null);
 			} catch (err) {
 				console.error("Failed to fetch subjects", err);
 			} finally {
@@ -166,9 +175,9 @@ const CourseProjectPage = () => {
     <div className="space-y-6">
       <section className="reveal-up delay-1 lit-card rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-6 shadow-card">
 		<p className="text-xs uppercase tracking-[0.2em] text-[var(--ok)] font-medium">Course Project</p>
-        <h2 className="mt-2 text-3xl font-bold text-[var(--text-strong)]">Subjects & Workspaces</h2>
+        <h2 className="mt-2 text-3xl font-bold text-[var(--text-strong)]">Subjects &amp; Workspaces</h2>
         <p className="mt-3 max-w-3xl text-sm text-[var(--text-muted)] md:text-base">
-					Register your group under the correct subject, then pick your respective lab faculty in a searchable modal.
+				Register your group under the correct subject, then pick your respective lab faculty in a searchable modal.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
 		  <Link to="/groups"><Button className="bg-[var(--primary-dark)] hover:bg-[var(--primary)] text-[var(--bg-0)]">Manage My Group</Button></Link>

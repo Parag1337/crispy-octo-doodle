@@ -10,6 +10,7 @@ import type { Task } from "../types/task.types";
 import { formatDate } from "../utils/helpers";
 import { fetchAllCommits, mapTasksToCommits, parseRepoFromUrl, type GitHubCommit } from "../utils/commitMapping";
 import type { GroupProject, ProjectGroup } from "../types/group.types";
+import { selectEdiMajorProjectGroup } from "../utils/groupSelection";
 
 const StudentProjectDetailsPage = () => {
   const { user } = useAuth();
@@ -39,7 +40,11 @@ const StudentProjectDetailsPage = () => {
       try {
         const [tasksResponse, groupResponse] = await Promise.all([fetchMyTasks(), fetchMyGroup()]);
         setTasks(tasksResponse.data.data);
-        const nextGroup = groupResponse.data.data[0] ?? null;
+        const groups = groupResponse.data.data;
+        const projectGroup = groups.find((candidate) =>
+          candidate.projects.some((entry) => entry.id === projectId)
+        );
+        const nextGroup = projectGroup ?? selectEdiMajorProjectGroup(groups) ?? null;
         setMyGroup(nextGroup);
         setGroup(nextGroup);
       } catch {
@@ -52,7 +57,7 @@ const StudentProjectDetailsPage = () => {
     };
 
     void loadTasksAndGroup();
-  }, []);
+  }, [projectId]);
 
   const project = useMemo<GroupProject | null>(() => group?.projects.find((entry) => entry.id === projectId) ?? null, [group, projectId]);
 
@@ -105,6 +110,17 @@ const StudentProjectDetailsPage = () => {
   }, [project, tasks]);
 
   const taskCommitLinks = useMemo(() => mapTasksToCommits(subjectTasks, commits), [subjectTasks, commits]);
+
+  const resolvedGuideName = useMemo(() => {
+    if (!project) return "Not assigned";
+    if (project.guideName && project.guideName !== "Not assigned") return project.guideName;
+
+    const registration = group?.courseProjectRegistrations?.find((entry) => {
+      return entry.subjectId === project.subjectId || entry.subjectName === project.subjectName;
+    });
+
+    return registration?.labFaculty?.name ?? "Not assigned";
+  }, [group, project]);
 
   const handleSaveRepository = async () => {
     if (!project) return;
@@ -179,7 +195,7 @@ const StudentProjectDetailsPage = () => {
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-1)]/70 p-3">
             <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Guide Name</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--text-strong)]">{project.guideName}</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--text-strong)]">{resolvedGuideName}</p>
           </div>
         </div>
       </section>
